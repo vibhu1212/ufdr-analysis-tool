@@ -11,7 +11,12 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
 import numpy as np
-import faiss
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+    print("Warning: FAISS not available. Using simple in-memory search.")
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
 import hashlib

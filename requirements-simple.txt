@@ -1,0 +1,37 @@
+# Simplified Requirements for UFDR Analysis Tool
+# Use this for easier installation on Windows
+
+# Core dependencies
+streamlit
+pandas
+numpy
+faker
+python-dotenv
+pydantic
+
+# XML Processing
+lxml
+xmltodict
+
+# Basic NLP (without heavy dependencies first)
+sentence-transformers
+
+# Cloud Storage
+boto3
+azure-storage-blob
+
+# Other essentials
+phonenumbers
+python-dateutil
+cryptography
+loguru
+pyyaml
+click
+plotly
+
+# Neo4j
+neo4j
+
+# For development
+pytest
+black

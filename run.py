@@ -21,9 +21,12 @@ def check_dependencies():
         'pandas',
         'faker',
         'lxml',
-        'faiss-cpu',
+        # 'faiss-cpu',  # Optional - will work without it
         'sentence_transformers'
     ]
+    
+    # Check optional packages
+    optional_packages = ['faiss-cpu', 'torch', 'neo4j']
     
     for package in required_packages:
         try:
@@ -31,14 +34,27 @@ def check_dependencies():
         except ImportError:
             missing.append(package)
     
+    # Check optional packages
+    optional_missing = []
+    for package in optional_packages:
+        try:
+            __import__(package.replace('-', '_'))
+        except ImportError:
+            optional_missing.append(package)
+    
     if missing:
-        print("❌ Missing dependencies detected:")
+        print("❌ Missing required dependencies:")
         for pkg in missing:
             print(f"   - {pkg}")
-        print("\n📦 Install with: pip install -r requirements.txt")
+        print("\n📦 Install with: setup.bat (on Windows) or pip install -r requirements-simple.txt")
         return False
     
-    print("✅ All dependencies installed")
+    if optional_missing:
+        print("⚠️ Optional dependencies not installed:")
+        for pkg in optional_missing:
+            print(f"   - {pkg} (some features may be limited)")
+    
+    print("✅ Core dependencies installed")
     return True
 
 def generate_samples():
