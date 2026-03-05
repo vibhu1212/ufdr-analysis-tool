@@ -234,3 +234,4 @@ For deployment assistance or technical queries:
 Ensure compliance with local laws and regulations regarding digital forensics and data privacy.
 
 **🔒 Security Note:** Never commit sensitive data, actual case files, or model weights to the repository.
+# ufdr-analysis-tool
