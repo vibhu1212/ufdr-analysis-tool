@@ -153,18 +153,19 @@ SOURCE_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Directories to copy
 dirs_to_copy=(
-    "parser"
-    "models"
-    "heuristics"
-    "nlp"
-    "vector"
-    "graph"
-    "media"
-    "security"
+    "data"
+    "database"
     "frontend"
-    "backend"
     "infra"
-    "tests"
+    "ingest"
+    "lib"
+    "media"
+    "parser"
+    "prompts"
+    "rag"
+    "scripts"
+    "utils"
+    "visualization"
 )
 
 for dir in "${dirs_to_copy[@]}"; do
@@ -179,13 +180,9 @@ done
 # Copy configuration files
 config_files=(
     "requirements.txt"
-    "requirements-nlp.txt"
-    "requirements-graph.txt"
-    "requirements-media.txt"
-    "requirements-frontend.txt"
-    "docker-compose.yml"
     "README.md"
-    "QUICKSTART_UI.md"
+    ".env.example"
+    "finalize_setup.sh"
 )
 
 for file in "${config_files[@]}"; do
@@ -232,35 +229,13 @@ if [ "$SKIP_DEPS" != true ]; then
         exit 1
     fi
     
-    # Install NLP dependencies
-    if [ -f "requirements-nlp.txt" ]; then
-        print_info "Installing NLP dependencies..."
-        pip3 install -r requirements-nlp.txt --no-warn-script-location > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            print_success "NLP dependencies installed"
-        else
-            print_warning "Some NLP dependencies failed (optional)"
-        fi
-    fi
-    
-    # Install graph dependencies
-    if [ -f "requirements-graph.txt" ]; then
-        print_info "Installing graph dependencies..."
-        pip3 install -r requirements-graph.txt --no-warn-script-location > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            print_success "Graph dependencies installed"
-        else
-            print_warning "Some graph dependencies failed (optional)"
-        fi
-    fi
-    
-    # Install UI dependencies
-    print_info "Installing UI dependencies..."
+    # Install additional UI dependencies just in case
+    print_info "Installing additional UI dependencies..."
     pip3 install streamlit plotly pandas networkx > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-        print_success "UI dependencies installed"
+        print_success "UI dependencies extra packages installed"
     else
-        print_error "Failed to install UI dependencies"
+        print_error "Failed to install extra UI dependencies"
     fi
 else
     print_warning "[5/8] Skipped: Dependency installation"
@@ -322,7 +297,7 @@ echo ""
 echo -e "\033[0;37mPress Ctrl+C to stop the server\033[0m"
 echo ""
 
-streamlit run frontend/production_app.py
+streamlit run frontend/app.py
 EOF
 
 chmod +x "$INSTALL_PATH/launch.sh"
@@ -395,10 +370,9 @@ echo -e "     ${CYAN}./launch.sh${NC}"
 echo -e "  2. Start as system service:"
 echo -e "     ${CYAN}sudo systemctl start ufdr-analysis-tool${NC}"
 echo -e "  3. Manual launch:"
-echo -e "     ${CYAN}streamlit run frontend/production_app.py${NC}"
+echo -e "     ${CYAN}streamlit run frontend/app.py${NC}"
 
 echo -e "\n📚 Documentation:"
-echo "  • Quick Start: $INSTALL_PATH/QUICKSTART_UI.md"
 echo "  • Full Docs: $INSTALL_PATH/README.md"
 
 echo -e "\n🌐 Access URL: ${YELLOW}http://localhost:8501${NC}"

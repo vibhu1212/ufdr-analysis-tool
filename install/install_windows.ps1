@@ -135,18 +135,19 @@ $sourceDir = Split-Path -Parent $currentDir
 
 # List of directories to copy
 $dirsToTopy = @(
-    "parser",
-    "models",
-    "heuristics",
-    "nlp",
-    "vector",
-    "graph",
-    "media",
-    "security",
+    "data",
+    "database",
     "frontend",
-    "backend",
     "infra",
-    "tests"
+    "ingest",
+    "lib",
+    "media",
+    "parser",
+    "prompts",
+    "rag",
+    "scripts",
+    "utils",
+    "visualization"
 )
 
 foreach ($dir in $dirsToTopy) {
@@ -163,13 +164,9 @@ foreach ($dir in $dirsToTopy) {
 # Copy configuration files
 $configFiles = @(
     "requirements.txt",
-    "requirements-nlp.txt",
-    "requirements-graph.txt",
-    "requirements-media.txt",
-    "requirements-frontend.txt",
-    "docker-compose.yml",
     "README.md",
-    "QUICKSTART_UI.md"
+    ".env.example",
+    "finalize_setup.sh"
 )
 
 foreach ($file in $configFiles) {
@@ -218,35 +215,13 @@ if (-not $SkipDependencies) {
         exit 1
     }
     
-    # Install NLP dependencies
-    if (Test-Path "requirements-nlp.txt") {
-        Write-Info "Installing NLP dependencies..."
-        pip install -r requirements-nlp.txt --no-warn-script-location 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "✓ NLP dependencies installed"
-        } else {
-            Write-Warning "! Some NLP dependencies failed (optional)"
-        }
-    }
-    
-    # Install graph dependencies
-    if (Test-Path "requirements-graph.txt") {
-        Write-Info "Installing graph dependencies..."
-        pip install -r requirements-graph.txt --no-warn-script-location 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "✓ Graph dependencies installed"
-        } else {
-            Write-Warning "! Some graph dependencies failed (optional)"
-        }
-    }
-    
-    # Install UI dependencies
-    Write-Info "Installing UI dependencies..."
+    # Install additional UI dependencies just in case
+    Write-Info "Installing additional UI dependencies..."
     pip install streamlit plotly pandas networkx --no-warn-script-location 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        Write-Success "✓ UI dependencies installed"
+        Write-Success "✓ UI dependencies extra packages installed"
     } else {
-        Write-Error "Failed to install UI dependencies"
+        Write-Error "Failed to install extra UI dependencies"
     }
 } else {
     Write-Warning "[5/8] Skipped: Dependency installation"
@@ -310,7 +285,7 @@ Write-Host ""
 Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Gray
 Write-Host ""
 
-streamlit run frontend/production_app.py
+streamlit run frontend/app.py
 "@
 
 $launcherPath = Join-Path $InstallPath "launch.ps1"
@@ -370,10 +345,9 @@ Write-Host "  2. Run from PowerShell:`n" -NoNewline
 Write-Host "     cd $InstallPath`n" -NoNewline -ForegroundColor Cyan
 Write-Host "     .\launch.ps1" -ForegroundColor Cyan
 Write-Host "  3. Manual launch:`n" -NoNewline
-Write-Host "     streamlit run frontend/production_app.py" -ForegroundColor Cyan
+Write-Host "     streamlit run frontend/app.py" -ForegroundColor Cyan
 
 Write-Host "`n📚 Documentation:"
-Write-Host "  • Quick Start: $InstallPath\QUICKSTART_UI.md"
 Write-Host "  • Full Docs: $InstallPath\README.md"
 
 Write-Host "`n🌐 Access URL: " -NoNewline
