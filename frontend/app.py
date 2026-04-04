@@ -46,7 +46,7 @@ cwd = os.getcwd()
 if cwd not in sys.path:
     sys.path.insert(1, cwd)
 
-import pandas as pd
+
 from datetime import datetime
 import json
 import logging
