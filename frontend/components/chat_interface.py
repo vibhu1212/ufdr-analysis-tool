@@ -11,6 +11,7 @@ import pandas as pd
 import time
 from datetime import datetime
 from pathlib import Path
+from itertools import islice
 
 # Import backend modules
 try:
@@ -88,7 +89,7 @@ def _render_as_table(citations: list[dict], query_type: str) -> bool:
             val = meta.get(db_col, "")
             # Truncate long text
             if isinstance(val, str) and len(val) > 120:
-                val = val[:117] + "..."
+                val = val[:117] + "..."  # type: ignore[index]
             row[display_name] = val
         rows.append(row)
 
@@ -135,7 +136,7 @@ def render_evidence_card(citation: dict):
         }
         if useful_meta:
             cols = st.columns(min(len(useful_meta), 3))
-            for i, (k, v) in enumerate(list(useful_meta.items())[:6]):
+            for i, (k, v) in enumerate(islice(useful_meta.items(), 6)):
                 with cols[i % len(cols)]:
                     st.caption(f"**{k.replace('_', ' ').title()}**: {v}")
         st.caption(f"🏷️ Type: `{data_type}` · Case: `{case_id}`")
@@ -170,10 +171,10 @@ def _render_chart(citations: list[dict], data_type: str):
     
     # Resample by hour or day depending on range
     if (max(timestamps) - min(timestamps)).days > 2:
-        resampled = df.set_index("Time").resample("D").count().reset_index()
+        resampled = df.set_index("Time").resample("d").count().reset_index()
         x_label = "Date"
     else:
-        resampled = df.set_index("Time").resample("H").count().reset_index()
+        resampled = df.set_index("Time").resample("h").count().reset_index()
         x_label = "Time (Hourly)"
 
     st.caption(f"📈 {data_type.title()} Activity Over Time")
@@ -236,7 +237,7 @@ def display_chat_message(role: str, content: str, citations: list | None = None,
 
             # 4. Evidence Cards (Detailed View)
             with st.expander(f"📋 {len(citations)} Supporting Trace Items", expanded=False):
-                for c in citations[:15]:
+                for c in islice(citations, 15):
                     render_evidence_card(c)
                 if len(citations) > 15:
                     st.caption(f"*...and {len(citations) - 15} more items*")
