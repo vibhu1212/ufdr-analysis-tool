@@ -75,17 +75,25 @@ class CentralityDashboard:
             for contact, score in values:
                 centrality_data[contact][metric_key] = score
         
-        # Get names for all contacts
-        for contact in all_contacts:
+        # Get names for all contacts in batches
+        contact_list = list(all_contacts)
+        batch_size = 900
+
+        # Pre-fill with default values
+        for contact in contact_list:
+            centrality_data[contact]['name'] = contact[:15]
+
+        for i in range(0, len(contact_list), batch_size):
+            batch = contact_list[i:i+batch_size]
+            placeholders = ','.join(['?'] * len(batch))
             cursor = conn.execute(
-                "SELECT COALESCE(name, phone_raw) FROM contacts WHERE phone_digits = ? LIMIT 1",
-                (contact,)
+                f"SELECT phone_digits, COALESCE(name, phone_raw) FROM contacts WHERE phone_digits IN ({placeholders})",
+                batch
             )
-            result = cursor.fetchone()
-            if result:
-                centrality_data[contact]['name'] = result[0]
-            else:
-                centrality_data[contact]['name'] = contact[:15]
+            for row in cursor.fetchall():
+                phone_digits, name = row
+                if phone_digits in centrality_data:
+                    centrality_data[phone_digits]['name'] = name
         
         conn.close()
         
@@ -487,13 +495,24 @@ class CentralityDashboard:
         contact_list = list(all_contacts)
         contact_names = []
         
-        for contact in contact_list:
+        # Pre-fill default names
+        name_map = {contact: contact[:15] for contact in contact_list}
+        batch_size = 900
+
+        for i in range(0, len(contact_list), batch_size):
+            batch = contact_list[i:i+batch_size]
+            placeholders = ','.join(['?'] * len(batch))
             cursor = conn.execute(
-                "SELECT COALESCE(name, phone_raw) FROM contacts WHERE phone_digits = ? LIMIT 1",
-                (contact,)
+                f"SELECT phone_digits, COALESCE(name, phone_raw) FROM contacts WHERE phone_digits IN ({placeholders})",
+                batch
             )
-            result = cursor.fetchone()
-            contact_names.append(result[0] if result else contact[:15])
+            for row in cursor.fetchall():
+                phone_digits, name = row
+                if phone_digits in name_map:
+                    name_map[phone_digits] = name
+
+        for contact in contact_list:
+            contact_names.append(name_map[contact])
         
         conn.close()
         
