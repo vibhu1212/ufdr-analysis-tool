@@ -13,7 +13,6 @@ from typing import List, Dict, Optional
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
 from PIL import Image
-import numpy as np
 
 # Try to import ML libraries
 try:
