@@ -46,7 +46,7 @@ cwd = os.getcwd()
 if cwd not in sys.path:
     sys.path.insert(1, cwd)
 
-import pandas as pd
+
 from datetime import datetime
 import json
 import logging
@@ -59,6 +59,13 @@ load_dotenv(project_root / ".env")
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Suppress verbose underlying logs and warnings
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+
+import warnings
+warnings.filterwarnings("ignore")
 
 # ============================================================================
 # Main Helper Functions
