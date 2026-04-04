@@ -60,6 +60,13 @@ load_dotenv(project_root / ".env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Suppress verbose underlying logs and warnings
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+
+import warnings
+warnings.filterwarnings("ignore")
+
 # ============================================================================
 # Main Helper Functions
 # ============================================================================
