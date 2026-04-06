@@ -326,37 +326,73 @@ class BatchWriter:
                 # Process in batches
                 for i in range(0, len(type_records), self.batch_size):
                     batch = type_records[i:i + self.batch_size]
-                    
+
+                    # ⚡ Bolt: Fix N+1 Query bottleneck by batch fetching existing records
+                    # First pass: normalize all records and collect search keys
+                    normalized_batch = []
+                    keys_to_fetch = set()
                     for record in batch:
                         try:
-                            # Normalize record
                             normalized = self._normalize_record(record, case_id)
-                            
-                            # Check if exists (idempotent)
-                            cursor.execute(
-                                f"SELECT id FROM {table_name} WHERE case_id = ? AND src_file = ? AND src_offset = ?",
-                                (case_id, normalized.get('src_file'), normalized.get('src_offset'))
-                            )
-                            
-                            if cursor.fetchone():
+                            normalized_batch.append((record, normalized))
+                            src_file = normalized.get("src_file")
+                            src_offset = normalized.get("src_offset")
+                            if src_file is not None and src_offset is not None:
+                                keys_to_fetch.add((src_file, src_offset))
+                        except Exception as e:
+                            logger.error(f"Error normalizing record: {e}")
+                            self.stats.errors += 1
+                            normalized_batch.append((record, None))
+
+                    existing_records = set()
+                    if keys_to_fetch:
+                        # SQLite max variable limit is 999. We use 2 variables per pair.
+                        # Chunking at 400 pairs (800 vars + 1 for case_id) is safe.
+                        keys_list = list(keys_to_fetch)
+                        for chunk_idx in range(0, len(keys_list), 400):
+                            chunk = keys_list[chunk_idx:chunk_idx + 400]
+
+                            or_conditions = []
+                            query_params = [case_id]
+                            for (src_file, src_offset) in chunk:
+                                or_conditions.append("(src_file = ? AND src_offset = ?)")
+                                query_params.extend([src_file, src_offset])
+
+                            where_clause = " OR ".join(or_conditions)
+                            query = f"SELECT src_file, src_offset FROM {table_name} WHERE case_id = ? AND ({where_clause})"
+
+                            cursor.execute(query, query_params)
+                            for row in cursor.fetchall():
+                                existing_records.add((row[0], row[1]))
+
+                    for record, normalized in normalized_batch:
+                        if normalized is None:
+                            continue
+                        try:
+                            # Check if exists in memory
+                            record_key = (normalized.get("src_file"), normalized.get("src_offset"))
+                            if record_key in existing_records:
                                 self.stats.skipped += 1
                                 continue
-                            
+
+                            # Add to existing_records to prevent intra-batch duplicates
+                            existing_records.add(record_key)
+
                             # Insert
                             columns = list(normalized.keys())
-                            placeholders = ','.join(['?' for _ in columns])
+                            placeholders = ",".join(["?" for _ in columns])
                             values = [normalized[col] for col in columns]
-                            
+
                             cursor.execute(
                                 f"INSERT INTO {table_name} ({','.join(columns)}) VALUES ({placeholders})",
                                 values
                             )
                             self.stats.inserted += 1
-                            
+
                         except Exception as e:
                             logger.error(f"Error writing record: {e}")
                             self.stats.errors += 1
-                    
+
                     # Commit batch
                     conn.commit()
                     

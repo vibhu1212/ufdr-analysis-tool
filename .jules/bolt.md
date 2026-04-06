@@ -1,0 +1,3 @@
+## 2026-04-06 - Batching SQLite Select Queries with Multi-Column OR Conditions
+**Learning:** When resolving N+1 queries by batch-fetching existing items via multi-column conditions, the standard `IN` operator cannot accept tuples across standard sqlite bindings. Chaining `(col1 = ? AND col2 = ?)` `OR` statements is robust, provided chunks are restricted to ~400 pairs to satisfy SQLite's 999 parameter limit. Always fetch the target pair specifically to avoid returning the entire history of one column constraint, preventing memory leaks for large iterative batches.
+**Action:** Consistently use chunked chained `OR` statements for tuple matching within SQLite, safely respecting max param limits, rather than wide `IN` fetches.
