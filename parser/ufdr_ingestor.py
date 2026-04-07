@@ -21,19 +21,19 @@ logger = logging.getLogger(__name__)
 
 class UFDRIngestor:
     """Main class for ingesting UFDR files"""
-    
+
     def __init__(self, db_path: str = "data/ufdr_analysis.db"):
         """Initialize the ingestor with database connection"""
         self.db_path = db_path
         self._ensure_database()
-        
+
     def _ensure_database(self):
         """Create database tables if they don't exist"""
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         # Create tables
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS cases (
@@ -45,7 +45,7 @@ class UFDRIngestor:
                 status TEXT
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,7 +62,7 @@ class UFDRIngestor:
                 FOREIGN KEY (case_id) REFERENCES cases(case_id)
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS calls (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,7 +77,7 @@ class UFDRIngestor:
                 FOREIGN KEY (case_id) REFERENCES cases(case_id)
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contacts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +91,7 @@ class UFDRIngestor:
                 FOREIGN KEY (case_id) REFERENCES cases(case_id)
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS locations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,7 +106,7 @@ class UFDRIngestor:
                 FOREIGN KEY (case_id) REFERENCES cases(case_id)
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS devices (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,20 +121,26 @@ class UFDRIngestor:
                 FOREIGN KEY (case_id) REFERENCES cases(case_id)
             )
         """)
-        
+
         # Create indexes for better query performance
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_case_id ON messages(case_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_calls_case_id ON calls(case_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_contacts_case_id ON contacts(case_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_locations_case_id ON locations(case_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_calls_timestamp ON calls(timestamp)")
-        
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_messages_case_id ON messages(case_id)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_calls_case_id ON calls(case_id)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_contacts_case_id ON contacts(case_id)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_locations_case_id ON locations(case_id)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_calls_timestamp ON calls(timestamp)")
+
         conn.commit()
         conn.close()
-        
+
         logger.info(f"Database initialized at {self.db_path}")
-    
+
     def _calculate_file_hash(self, file_path: str) -> str:
         """Calculate SHA256 hash of a file"""
         sha256_hash = hashlib.sha256()
@@ -142,25 +148,25 @@ class UFDRIngestor:
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
-    
+
     def _extract_ufdr(self, file_path: str, extract_dir: str) -> str:
         """Extract UFDR (ZIP) file and return path to XML"""
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(extract_dir)
-        
+
         # Find the main XML file
         for root, dirs, files in os.walk(extract_dir):
             for file in files:
                 if file.endswith('.xml'):
                     return os.path.join(root, file)
-        
+
         raise ValueError("No XML file found in UFDR archive")
-    
+
     def _parse_xml_data(self, xml_path: str) -> Dict:
         """Parse XML data from UFDR file"""
         tree = ET.parse(xml_path)
         root = tree.getroot()
-        
+
         data = {
             'messages': [],
             'calls': [],
@@ -168,7 +174,7 @@ class UFDRIngestor:
             'locations': [],
             'devices': []
         }
-        
+
         # Parse messages
         for msg in root.findall('.//message'):
             message_data = {
@@ -182,17 +188,17 @@ class UFDRIngestor:
                 'attachments': [],
                 'metadata': {}
             }
-            
+
             # Get attachments
             for att in msg.findall('.//attachment'):
                 message_data['attachments'].append(att.text)
-            
+
             # Extract metadata
             for meta in msg.findall('.//metadata/*'):
                 message_data['metadata'][meta.tag] = meta.text
-            
+
             data['messages'].append(message_data)
-        
+
         # Parse calls
         for call in root.findall('.//call'):
             call_data = {
@@ -204,34 +210,34 @@ class UFDRIngestor:
                 'call_type': call.findtext('type', 'unknown'),
                 'metadata': {}
             }
-            
+
             # Extract metadata
             for meta in call.findall('.//metadata/*'):
                 call_data['metadata'][meta.tag] = meta.text
-            
+
             data['calls'].append(call_data)
-        
+
         # Parse contacts - handle both lowercase and uppercase tags
         contact_elements = (
-            root.findall('.//contact') + 
+            root.findall('.//contact') +
             root.findall('.//Contact')
         )
-        
+
         for contact in contact_elements:
             # Handle both tag variations
             contact_id = (
-                contact.findtext('id') or 
-                contact.findtext('Id') or 
+                contact.findtext('id') or
+                contact.findtext('Id') or
                 contact.get('id', '')
             )
-            
+
             name = (
-                contact.findtext('name') or 
-                contact.findtext('Name') or 
-                contact.findtext('display_name') or 
+                contact.findtext('name') or
+                contact.findtext('Name') or
+                contact.findtext('display_name') or
                 contact.findtext('DisplayName') or ''
             )
-            
+
             contact_data = {
                 'contact_id': contact_id,
                 'name': name,
@@ -240,64 +246,66 @@ class UFDRIngestor:
                 'addresses': [],
                 'metadata': {}
             }
-            
+
             # Get phone numbers - handle multiple tag variations
             phone_elements = (
-                contact.findall('.//phone') + 
-                contact.findall('.//Phone') + 
+                contact.findall('.//phone') +
+                contact.findall('.//Phone') +
                 contact.findall('.//number') +
                 contact.findall('.//Number')
             )
-            
+
             for phone_elem in phone_elements:
                 if phone_elem.text and phone_elem.text.strip():
-                    contact_data['phone_numbers'].append(phone_elem.text.strip())
-            
+                    contact_data['phone_numbers'].append(
+                        phone_elem.text.strip())
+
             # Also check for direct phone text (our XML structure)
             phone_text = contact.findtext('phone') or contact.findtext('Phone')
             if phone_text and phone_text not in contact_data['phone_numbers']:
                 contact_data['phone_numbers'].append(phone_text)
-            
+
             # Get emails - handle multiple tag variations
             email_elements = (
-                contact.findall('.//email') + 
+                contact.findall('.//email') +
                 contact.findall('.//Email') +
                 contact.findall('.//mail') +
                 contact.findall('.//Mail')
             )
-            
+
             for email_elem in email_elements:
                 if email_elem.text and email_elem.text.strip():
                     contact_data['emails'].append(email_elem.text.strip())
-            
+
             # Also check for direct email text
             email_text = contact.findtext('email') or contact.findtext('Email')
             if email_text and email_text not in contact_data['emails']:
                 contact_data['emails'].append(email_text)
-            
+
             # Get addresses
             addr_elements = (
-                contact.findall('.//address') + 
+                contact.findall('.//address') +
                 contact.findall('.//Address')
             )
-            
+
             for addr_elem in addr_elements:
                 if addr_elem.text and addr_elem.text.strip():
                     contact_data['addresses'].append(addr_elem.text.strip())
-            
+
             # Get company info as metadata
-            company = contact.findtext('company') or contact.findtext('Company')
+            company = contact.findtext(
+                'company') or contact.findtext('Company')
             if company:
                 contact_data['metadata']['company'] = company
-            
+
             # Extract other metadata
             for meta in contact.findall('.//metadata/*'):
                 contact_data['metadata'][meta.tag] = meta.text
-            
+
             # Only add if we have a name or phone number
             if contact_data['name'] or contact_data['phone_numbers']:
                 data['contacts'].append(contact_data)
-        
+
         # Parse locations
         for loc in root.findall('.//location'):
             location_data = {
@@ -309,13 +317,13 @@ class UFDRIngestor:
                 'address': loc.findtext('address', ''),
                 'metadata': {}
             }
-            
+
             # Extract metadata
             for meta in loc.findall('.//metadata/*'):
                 location_data['metadata'][meta.tag] = meta.text
-            
+
             data['locations'].append(location_data)
-        
+
         # Parse device info
         for device in root.findall('.//device'):
             device_data = {
@@ -327,20 +335,20 @@ class UFDRIngestor:
                 'serial_number': device.findtext('serial_number', ''),
                 'metadata': {}
             }
-            
+
             # Extract metadata
             for meta in device.findall('.//metadata/*'):
                 device_data['metadata'][meta.tag] = meta.text
-            
+
             data['devices'].append(device_data)
-        
+
         return data
-    
+
     def _store_data(self, case_id: str, data: Dict) -> Dict:
         """Store parsed data in SQLite database"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         statistics = {
             'messages': 0,
             'calls': 0,
@@ -348,15 +356,21 @@ class UFDRIngestor:
             'locations': 0,
             'devices': 0
         }
-        
+
         try:
+            # ⚡ BOLT OPTIMIZATION: Replaced N+1 row-by-row inserts with executemany
+            # Expected impact: Dramatically faster database insertions (approx 10x-50x speedup)
+            # by avoiding individual statement parsing and context switching
+            # overhead.
+
             # Store messages
-            for msg in data['messages']:
-                cursor.execute("""
-                    INSERT INTO messages (case_id, message_id, sender, recipient, text, 
-                                        timestamp, application, thread_id, attachments, metadata)
+            if data['messages']:
+                cursor.executemany("""
+                    INSERT INTO messages (case_id, message_id, sender, recipient,
+                                        text, timestamp, application, thread_id,
+                                        attachments, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                """, [(
                     case_id,
                     msg['message_id'],
                     msg['sender'],
@@ -367,16 +381,16 @@ class UFDRIngestor:
                     msg['thread_id'],
                     json.dumps(msg['attachments']),
                     json.dumps(msg['metadata'])
-                ))
-                statistics['messages'] += 1
-            
+                ) for msg in data['messages']])
+                statistics['messages'] += len(data['messages'])
+
             # Store calls
-            for call in data['calls']:
-                cursor.execute("""
-                    INSERT INTO calls (case_id, call_id, caller, callee, timestamp, 
+            if data['calls']:
+                cursor.executemany("""
+                    INSERT INTO calls (case_id, call_id, caller, callee, timestamp,
                                      duration, call_type, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                """, [(
                     case_id,
                     call['call_id'],
                     call['caller'],
@@ -385,16 +399,16 @@ class UFDRIngestor:
                     call['duration'],
                     call['call_type'],
                     json.dumps(call['metadata'])
-                ))
-                statistics['calls'] += 1
-            
+                ) for call in data['calls']])
+                statistics['calls'] += len(data['calls'])
+
             # Store contacts
-            for contact in data['contacts']:
-                cursor.execute("""
-                    INSERT INTO contacts (case_id, contact_id, name, phone_numbers, 
+            if data['contacts']:
+                cursor.executemany("""
+                    INSERT INTO contacts (case_id, contact_id, name, phone_numbers,
                                         emails, addresses, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
+                """, [(
                     case_id,
                     contact['contact_id'],
                     contact['name'],
@@ -402,16 +416,16 @@ class UFDRIngestor:
                     json.dumps(contact['emails']),
                     json.dumps(contact['addresses']),
                     json.dumps(contact['metadata'])
-                ))
-                statistics['contacts'] += 1
-            
+                ) for contact in data['contacts']])
+                statistics['contacts'] += len(data['contacts'])
+
             # Store locations
-            for loc in data['locations']:
-                cursor.execute("""
-                    INSERT INTO locations (case_id, location_id, timestamp, latitude, 
+            if data['locations']:
+                cursor.executemany("""
+                    INSERT INTO locations (case_id, location_id, timestamp, latitude,
                                          longitude, accuracy, address, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                """, [(
                     case_id,
                     loc['location_id'],
                     loc['timestamp'],
@@ -420,16 +434,16 @@ class UFDRIngestor:
                     loc['accuracy'],
                     loc['address'],
                     json.dumps(loc['metadata'])
-                ))
-                statistics['locations'] += 1
-            
+                ) for loc in data['locations']])
+                statistics['locations'] += len(data['locations'])
+
             # Store devices
-            for device in data['devices']:
-                cursor.execute("""
-                    INSERT INTO devices (case_id, device_id, manufacturer, model, 
+            if data['devices']:
+                cursor.executemany("""
+                    INSERT INTO devices (case_id, device_id, manufacturer, model,
                                        os, imei, serial_number, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                """, [(
                     case_id,
                     device['device_id'],
                     device['manufacturer'],
@@ -438,26 +452,26 @@ class UFDRIngestor:
                     device['imei'],
                     device['serial_number'],
                     json.dumps(device['metadata'])
-                ))
-                statistics['devices'] += 1
-            
+                ) for device in data['devices']])
+                statistics['devices'] += len(data['devices'])
+
             conn.commit()
             logger.info(f"Stored data for case {case_id}: {statistics}")
-            
+
         except Exception as e:
             conn.rollback()
             logger.error(f"Error storing data: {e}")
             raise
         finally:
             conn.close()
-        
+
         return statistics
-    
+
     def _save_parsed_data(self, case_id: str, data: Dict):
         """Save parsed data as JSON files for vector indexing"""
         output_dir = Path("data/parsed") / case_id
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Save each data type
         for data_type, items in data.items():
             if items:
@@ -465,54 +479,58 @@ class UFDRIngestor:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     json.dump(items, f, indent=2, ensure_ascii=False)
                 logger.info(f"Saved {len(items)} {data_type} to {file_path}")
-    
-    def ingest(self, file_path: str, case_id: str = None, operator: str = None) -> Dict:
+
+    def ingest(
+            self,
+            file_path: str,
+            case_id: str = None,
+            operator: str = None) -> Dict:
         """
         Main ingestion method
-        
+
         Args:
             file_path: Path to UFDR file
             case_id: Case identifier
             operator: Operator name
-            
+
         Returns:
             Ingestion manifest with statistics
         """
         # Generate case ID if not provided
         if not case_id:
             case_id = f"case_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
+
         logger.info(f"Starting ingestion for case: {case_id}")
-        
+
         # Calculate file hash
         file_hash = self._calculate_file_hash(file_path)
-        
+
         # Create temporary directory for extraction
         temp_dir = Path("temp") / case_id
         temp_dir.mkdir(parents=True, exist_ok=True)
-        
+
         try:
             # Extract UFDR file
             logger.info("Extracting UFDR file...")
             xml_path = self._extract_ufdr(file_path, str(temp_dir))
-            
+
             # Parse XML data
             logger.info("Parsing XML data...")
             data = self._parse_xml_data(xml_path)
-            
+
             # Store in database
             logger.info("Storing data in database...")
             statistics = self._store_data(case_id, data)
-            
+
             # Save parsed data for vector indexing
             logger.info("Saving parsed data...")
             self._save_parsed_data(case_id, data)
-            
+
             # Update case record
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT OR REPLACE INTO cases (case_id, operator, created_at, 
+                INSERT OR REPLACE INTO cases (case_id, operator, created_at,
                                             source_file, file_hash, status)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (
@@ -525,7 +543,7 @@ class UFDRIngestor:
             ))
             conn.commit()
             conn.close()
-            
+
             # Create manifest
             manifest = {
                 'case_id': case_id,
@@ -541,15 +559,16 @@ class UFDRIngestor:
                     'statistics': statistics
                 }
             }
-            
+
             # Save manifest
             manifest_path = Path("data/parsed") / case_id / "manifest.json"
             with open(manifest_path, 'w') as f:
                 json.dump(manifest, f, indent=2)
-            
-            logger.info(f"Ingestion completed successfully for case: {case_id}")
+
+            logger.info(
+                f"Ingestion completed successfully for case: {case_id}")
             return manifest
-            
+
         except Exception as e:
             logger.error(f"Error during ingestion: {e}")
             # Update case status
@@ -561,7 +580,7 @@ class UFDRIngestor:
             conn.commit()
             conn.close()
             raise
-            
+
         finally:
             # Cleanup temporary files
             import shutil
@@ -572,20 +591,20 @@ class UFDRIngestor:
 if __name__ == "__main__":
     # Test the ingestor
     ingestor = UFDRIngestor()
-    
+
     # Test with a sample UFDR file
     ufdr_files = list(Path("data/ufdr_files").glob("*.ufdr"))
     if ufdr_files:
         test_file = ufdr_files[0]
         print(f"Testing with: {test_file}")
-        
+
         manifest = ingestor.ingest(
             str(test_file),
             case_id=f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             operator="Test Operator"
         )
-        
-        print(f"Ingestion successful!")
+
+        print("Ingestion successful!")
         print(f"Statistics: {manifest['parsing']['statistics']}")
     else:
         print("No UFDR files found for testing")
