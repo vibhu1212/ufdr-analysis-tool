@@ -234,13 +234,16 @@ class VideoProcessor:
                                    if stream['codec_type'] == 'video'), None)
                 
                 if video_stream:
-                    fps_str = video_stream.get('r_frame_rate', '0/1')
-                    fps = 0.0
-                    if '/' in fps_str:
-                        num, den = fps_str.split('/')
-                        fps = float(num) / float(den) if float(den) != 0 else 0.0
-                    else:
-                        fps = float(fps_str)
+                    # Safely parse frame rate (e.g., '30000/1001' -> 29.97)
+                    r_frame_rate = video_stream.get('r_frame_rate', '0/1')
+                    try:
+                        if '/' in str(r_frame_rate):
+                            num, den = str(r_frame_rate).split('/')
+                            fps = float(num) / float(den) if float(den) != 0 else 0.0
+                        else:
+                            fps = float(r_frame_rate)
+                    except ValueError:
+                        fps = 0.0
 
                     info.update({
                         'duration': float(video_stream.get('duration', 0)),

@@ -1,4 +1,7 @@
-## 2024-04-05 - Fix SQL Injection in UFDR Upload
-**Vulnerability:** SQL injection vulnerability in `frontend/components/ufdr_upload_component.py` where user-controlled table names were interpolated using f-strings into SQL queries (e.g., `sqlite_master` lookups).
-**Learning:** Even internal queries that seem safe because they operate on database metadata (like `sqlite_master` or `PRAGMA` statements) can be vulnerable if the table name originates from an external or dynamic source. While table names cannot be parameterized in SQLite for operations like `SELECT * FROM`, string comparisons in `WHERE` clauses (like `WHERE name='{table}'`) MUST be parameterized.
-**Prevention:** Always parameterize string variables in SQL queries, even when querying system tables like `sqlite_master`. For `PRAGMA` or direct `SELECT` queries where parameterization is not supported by SQLite, validate the table name against a known good list or verify its existence through a parameterized `sqlite_master` query before using it in string interpolation.
+## 2024-04-06 - [CRITICAL] Remote Code Execution via eval() on FFmpeg probe output
+**Vulnerability:** A critical Remote Code Execution (RCE) vulnerability was present in `media/video_processor.py`. The `get_video_info` function used the Python built-in `eval()` to calculate the video frame rate (`fps`) from FFmpeg's `ffprobe` output (`video_stream.get('r_frame_rate', '0/1')`). While usually a string like "30000/1001" or "30/1", an attacker could craft a malicious video file where the metadata for frame rate contains arbitrary Python code. When parsed, this code would be executed by `eval()` within the application's context.
+**Learning:** Never trust metadata or outputs from external tools, even established ones like FFmpeg. While `ffprobe` extracts information, the data itself is originally supplied by the file creator and is untrusted user input. Using `eval()` on any untrusted data is a severe security risk.
+**Prevention:**
+- Use safe string parsing (e.g., `.split('/')`) and explicit type conversions (`float()`) instead of evaluating strings as code.
+- Always treat metadata extracted from user-supplied files (images, videos, documents) as malicious user input.
+- Adopt a "trust nothing, verify everything" mindset, particularly when bridging external processes and the Python runtime.
