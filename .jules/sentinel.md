@@ -1,4 +1,4 @@
-## 2024-04-04 - [CRITICAL] Remote Code Execution via eval() on Video Metadata
-**Vulnerability:** A critical Remote Code Execution (RCE) vulnerability was found in `media/video_processor.py`, where `eval()` was used to parse `r_frame_rate` strings obtained from external video metadata (e.g., `'30000/1001'`).
-**Learning:** External data, such as media metadata (FFmpeg probe output), can be arbitrarily manipulated by an attacker to contain malicious Python code. Using `eval()` on this unsanitized data poses a critical RCE risk.
-**Prevention:** Avoid `eval()` entirely for parsing data. Always use safe, deterministic string parsing, such as `split('/')` and float casting, to safely handle and validate metadata.
+## 2024-04-05 - Fix SQL Injection in UFDR Upload
+**Vulnerability:** SQL injection vulnerability in `frontend/components/ufdr_upload_component.py` where user-controlled table names were interpolated using f-strings into SQL queries (e.g., `sqlite_master` lookups).
+**Learning:** Even internal queries that seem safe because they operate on database metadata (like `sqlite_master` or `PRAGMA` statements) can be vulnerable if the table name originates from an external or dynamic source. While table names cannot be parameterized in SQLite for operations like `SELECT * FROM`, string comparisons in `WHERE` clauses (like `WHERE name='{table}'`) MUST be parameterized.
+**Prevention:** Always parameterize string variables in SQL queries, even when querying system tables like `sqlite_master`. For `PRAGMA` or direct `SELECT` queries where parameterization is not supported by SQLite, validate the table name against a known good list or verify its existence through a parameterized `sqlite_master` query before using it in string interpolation.
