@@ -100,7 +100,7 @@ def _render_as_table(citations: list[dict], query_type: str) -> bool:
     st.caption(f"📊 Found **{len(df)}** {data_type}s")
     st.dataframe(
         df,
-        width="stretch",
+        use_container_width=True,
         hide_index=True,
         height=min(400, 35 * len(df) + 38),  # Auto-height, max 400px
     )
