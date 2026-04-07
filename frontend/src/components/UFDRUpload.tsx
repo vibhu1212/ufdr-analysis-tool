@@ -314,8 +314,9 @@ const UFDRUpload: React.FC<UFDRUploadProps> = ({ caseId, onUploadComplete }) => 
                 
                 {(job.status === 'completed' || job.status === 'failed') && (
                   <button
+                    aria-label="Remove job"
                     onClick={() => removeJob(job.id)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full p-1"
                   >
                     <X size={18} />
                   </button>
