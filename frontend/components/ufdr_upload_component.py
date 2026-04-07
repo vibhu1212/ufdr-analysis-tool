@@ -276,12 +276,12 @@ def ingest_ufdr_data(extract_dir, filename, case_metadata):
                         has_case_id = 'case_id' in source_column_names
                         
                         # Check if table exists in target
-                        cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
+                        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
                         target_table_exists = cursor.fetchone() is not None
                         
                         if not target_table_exists:
                             # Create table in main db (copy schema)
-                            source_cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{table}'")
+                            source_cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,))
                             create_sql = source_cursor.fetchone()
                             if create_sql:
                                 cursor.execute(create_sql[0].replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS'))
@@ -303,7 +303,7 @@ def ingest_ufdr_data(extract_dir, filename, case_metadata):
                             # If 'id' is AUTOINCREMENT in target, exclude it from insert
                             if 'id' in common_columns:
                                 # Check if id is autoincrement in target
-                                cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{table}'")
+                                cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,))
                                 target_sql = cursor.fetchone()
                                 if target_sql and 'AUTOINCREMENT' in target_sql[0].upper():
                                     common_columns = [col for col in common_columns if col != 'id']
