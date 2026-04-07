@@ -28,7 +28,7 @@ class WriteStatistics:
     updated: int = 0
     skipped: int = 0
     errors: int = 0
-    
+
     def to_dict(self) -> Dict:
         """Convert to dictionary"""
         return {
@@ -45,32 +45,32 @@ class RecordNormalizer:
     """
     Normalizes record fields for storage
     """
-    
+
     @staticmethod
     def normalize_phone(phone: str) -> str:
         """Normalize phone to E.164 format"""
         if not phone:
             return phone
-        
+
         # Remove all non-digits except leading +
         phone = re.sub(r'[\s\-\(\)]', '', phone)
-        
+
         # Ensure + prefix
         if not phone.startswith('+'):
             if phone.startswith('91') and len(phone) == 12:
                 phone = '+' + phone
             elif len(phone) == 10:
                 phone = '+91' + phone  # Assume Indian
-        
+
         return phone
-    
+
     @staticmethod
     def normalize_email(email: str) -> str:
         """Normalize email address"""
         if not email:
             return email
         return email.lower().strip()
-    
+
     @staticmethod
     def normalize_text(text: str) -> str:
         """Normalize text for search"""
@@ -78,29 +78,29 @@ class RecordNormalizer:
             return text
         # Lowercase, strip whitespace
         return text.strip().lower()
-    
+
     @staticmethod
     def generate_name_tokens(name: str) -> str:
         """Generate search tokens from name for fuzzy matching"""
         if not name:
             return ""
-        
+
         # Remove punctuation and split
         tokens = re.split(r'[\s,\.\-]+', name.lower())
         tokens = [t.strip() for t in tokens if t.strip()]
-        
+
         # Return space-separated tokens for FTS
         return ' '.join(tokens)
-    
+
     @staticmethod
     def parse_datetime(dt: Any) -> Optional[str]:
         """Parse datetime to ISO 8601 format"""
         if not dt:
             return None
-        
+
         if isinstance(dt, datetime):
             return dt.isoformat()
-        
+
         # Already a string, return as-is
         return str(dt)
 
@@ -109,7 +109,7 @@ class DatabaseSchema:
     """
     Manages database schema creation and updates
     """
-    
+
     @staticmethod
     def get_sqlite_type(field_type: FieldType) -> str:
         """Map FieldType to SQLite type"""
@@ -126,46 +126,46 @@ class DatabaseSchema:
             FieldType.UNKNOWN: "TEXT",
         }
         return type_map.get(field_type, "TEXT")
-    
+
     @staticmethod
     def create_table_sql(entity_type: RecordType, schema: EntitySchema) -> str:
         """Generate CREATE TABLE SQL from schema"""
         table_name = f"{entity_type.value}s"
-        
+
         columns = []
         columns.append("id INTEGER PRIMARY KEY AUTOINCREMENT")
-        
+
         for field_name, field_schema in schema.fields.items():
             sql_type = DatabaseSchema.get_sqlite_type(field_schema.field_type)
             constraints = []
-            
+
             if field_schema.required and not field_schema.nullable:
                 constraints.append("NOT NULL")
-            
+
             if field_name == 'record_uuid':
                 constraints.append("UNIQUE")
-            
+
             column_def = f"{field_name} {sql_type}"
             if constraints:
                 column_def += " " + " ".join(constraints)
-            
+
             columns.append(column_def)
-        
+
         return f"CREATE TABLE IF NOT EXISTS {table_name} (\n  " + ",\n  ".join(columns) + "\n)"
-    
+
     @staticmethod
     def create_indexes_sql(entity_type: RecordType, schema: EntitySchema) -> List[str]:
         """Generate CREATE INDEX SQL statements"""
         table_name = f"{entity_type.value}s"
         statements = []
-        
+
         for index_field in schema.indexes:
             if index_field in schema.fields:
                 index_name = f"idx_{table_name}_{index_field}"
                 statements.append(
                     f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({index_field})"
                 )
-        
+
         return statements
 
 
@@ -173,14 +173,14 @@ class BatchWriter:
     """
     Writes records to database in batches with checkpointing
     """
-    
-    def __init__(self, 
+
+    def __init__(self,
                  db_path: str,
                  batch_size: int = 1000,
                  checkpoint_interval: int = 5000):
         """
         Initialize batch writer
-        
+
         Args:
             db_path: Path to SQLite database
             batch_size: Number of records per batch
@@ -191,22 +191,22 @@ class BatchWriter:
         self.checkpoint_interval = checkpoint_interval
         self.normalizer = RecordNormalizer()
         self.stats = WriteStatistics()
-        
+
         # Ensure parent directory exists
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        
+
         logger.info(f"Initialized BatchWriter: {db_path}")
-    
+
     def initialize_database(self, schemas: Dict[RecordType, EntitySchema]):
         """
         Initialize database with schemas
-        
+
         Args:
             schemas: Dictionary of entity schemas
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             for entity_type, schema in schemas.items():
                 if entity_type != RecordType.UNKNOWN:
@@ -214,29 +214,29 @@ class BatchWriter:
                     create_table_sql = DatabaseSchema.create_table_sql(entity_type, schema)
                     logger.info(f"Creating table for {entity_type.value}...")
                     cursor.execute(create_table_sql)
-                    
+
                     # Create indexes
                     for index_sql in DatabaseSchema.create_indexes_sql(entity_type, schema):
                         cursor.execute(index_sql)
-            
+
             conn.commit()
             logger.info("✅ Database initialized successfully")
-            
+
         except Exception as e:
             logger.error(f"❌ Database initialization failed: {e}")
             conn.rollback()
             raise
         finally:
             conn.close()
-    
+
     def _normalize_record(self, record: SegmentedRecord, case_id: str) -> Dict[str, Any]:
         """
         Normalize a record for database storage
-        
+
         Args:
             record: Segmented record
             case_id: Case identifier
-            
+
         Returns:
             Dictionary of normalized fields
         """
@@ -244,7 +244,7 @@ class BatchWriter:
             'record_uuid': str(uuid.uuid4()),
             'case_id': case_id,
         }
-        
+
         # Copy and normalize fields
         for key, value in record.fields.items():
             if key == 'phone':
@@ -260,18 +260,18 @@ class BatchWriter:
                 normalized[key] = self.normalizer.parse_datetime(value)
             else:
                 normalized[key] = value
-        
+
         # Add detection metadata
         normalized['detection_confidence'] = record.confidence
         normalized['detection_reasons'] = json.dumps(record.extraction_reasons)
-        
+
         # Add provenance
         if record.provenance:
             normalized['src_file'] = record.provenance.get('src_file')
             normalized['src_offset'] = record.provenance.get('src_offset')
-        
+
         normalized['schema_version'] = "1.0.0"
-        
+
         # Store raw blob for audit
         normalized['raw_blob'] = json.dumps({
             'fields': record.fields,
@@ -279,34 +279,34 @@ class BatchWriter:
             'type_label': record.type_label.value,
             'metadata': record.metadata
         }, ensure_ascii=False)
-        
+
         # Timestamps
         now = datetime.utcnow().isoformat() + 'Z'
         normalized['created_at'] = now
         normalized['updated_at'] = now
-        
+
         return normalized
-    
+
     def write_records(self,
                      records: List[SegmentedRecord],
                      case_id: str,
                      progress_callback: Optional[Callable[[int, int], None]] = None) -> WriteStatistics:
         """
         Write records to database in batches
-        
+
         Args:
             records: List of segmented records
             case_id: Case identifier
             progress_callback: Optional callback(current, total) for progress updates
-            
+
         Returns:
             WriteStatistics
         """
         self.stats = WriteStatistics(total_records=len(records))
-        
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             # Group records by type
             grouped = {}
@@ -314,71 +314,106 @@ class BatchWriter:
                 if record.type_label not in grouped:
                     grouped[record.type_label] = []
                 grouped[record.type_label].append(record)
-            
+
             # Process each type
             for record_type, type_records in grouped.items():
                 if record_type == RecordType.UNKNOWN:
                     self.stats.skipped += len(type_records)
                     continue
-                
+
                 table_name = f"{record_type.value}s"
-                
+
                 # Process in batches
                 for i in range(0, len(type_records), self.batch_size):
                     batch = type_records[i:i + self.batch_size]
-                    
+
+                    # ⚡ Bolt Optimization: Batch pre-fetch existing records to avoid N+1 SELECT queries
+                    # Normalizing upfront and using chunked OR conditions to respect SQLite parameter limits (999)
+                    normalized_batch = []
                     for record in batch:
                         try:
-                            # Normalize record
-                            normalized = self._normalize_record(record, case_id)
-                            
-                            # Check if exists (idempotent)
-                            cursor.execute(
-                                f"SELECT id FROM {table_name} WHERE case_id = ? AND src_file = ? AND src_offset = ?",
-                                (case_id, normalized.get('src_file'), normalized.get('src_offset'))
-                            )
-                            
-                            if cursor.fetchone():
+                            normalized_batch.append(self._normalize_record(record, case_id))
+                        except Exception as e:
+                            logger.error(f"Error normalizing record: {e}")
+                            self.stats.errors += 1
+
+                    existing_keys = set()
+                    chunk_size = 400 # Limit to ~400 pairs to keep parameters < 999
+
+                    for j in range(0, len(normalized_batch), chunk_size):
+                        chunk = normalized_batch[j:j + chunk_size]
+                        conditions = []
+                        params = [case_id]
+
+                        for norm_rec in chunk:
+                            src_f = norm_rec.get('src_file')
+                            src_o = norm_rec.get('src_offset')
+                            if src_f is not None and src_o is not None:
+                                conditions.append("(src_file = ? AND src_offset = ?)")
+                                params.extend([src_f, src_o])
+
+                        if conditions:
+                            query = f"SELECT src_file, src_offset FROM {table_name} WHERE case_id = ? AND ({' OR '.join(conditions)})"
+                            try:
+                                cursor.execute(query, params)
+                                for row in cursor.fetchall():
+                                    existing_keys.add((row[0], row[1]))
+                            except Exception as e:
+                                logger.error(f"Error during batch duplicate check: {e}")
+
+                    seen_in_batch = set()
+
+                    for normalized in normalized_batch:
+                        try:
+                            src_f = normalized.get('src_file')
+                            src_o = normalized.get('src_offset')
+                            key = (src_f, src_o)
+
+                            # O(1) duplicate lookup replacing the individual SELECT statement
+                            if (src_f is not None and src_o is not None) and (key in existing_keys or key in seen_in_batch):
                                 self.stats.skipped += 1
                                 continue
-                            
+
+                            if src_f is not None and src_o is not None:
+                                seen_in_batch.add(key)
+
                             # Insert
                             columns = list(normalized.keys())
                             placeholders = ','.join(['?' for _ in columns])
                             values = [normalized[col] for col in columns]
-                            
+
                             cursor.execute(
                                 f"INSERT INTO {table_name} ({','.join(columns)}) VALUES ({placeholders})",
                                 values
                             )
                             self.stats.inserted += 1
-                            
+
                         except Exception as e:
                             logger.error(f"Error writing record: {e}")
                             self.stats.errors += 1
-                    
+
                     # Commit batch
                     conn.commit()
-                    
+
                     # Checkpoint
                     if (i + self.batch_size) % self.checkpoint_interval == 0:
                         logger.info(f"Checkpoint: {self.stats.inserted} inserted, {self.stats.skipped} skipped, {self.stats.errors} errors")
-                    
+
                     # Progress callback
                     if progress_callback:
                         current = self.stats.inserted + self.stats.skipped + self.stats.errors
                         progress_callback(current, self.stats.total_records)
-            
+
             conn.commit()
             logger.info(f"✅ Write complete: {self.stats.to_dict()}")
-            
+
         except Exception as e:
             logger.error(f"❌ Batch write failed: {e}")
             conn.rollback()
             raise
         finally:
             conn.close()
-        
+
         return self.stats
 
 
@@ -386,21 +421,21 @@ class ProvenanceTracker:
     """
     Tracks and validates data provenance
     """
-    
+
     @staticmethod
     def validate_provenance(record: Dict[str, Any]) -> bool:
         """Validate that record has complete provenance"""
         required_fields = ['record_uuid', 'case_id', 'raw_blob', 'created_at']
         return all(field in record and record[field] is not None for field in required_fields)
-    
+
     @staticmethod
     def get_provenance_summary(db_path: str, case_id: str) -> Dict[str, Any]:
         """Get provenance summary for a case"""
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        
+
         summary = {}
-        
+
         for table in ['contacts', 'messages', 'call_logs']:
             try:
                 cursor.execute(
@@ -415,7 +450,7 @@ class ProvenanceTracker:
             except sqlite3.OperationalError:
                 # Table doesn't exist yet
                 summary[table] = {"count": 0, "avg_confidence": 0.0}
-        
+
         conn.close()
         return summary
 
@@ -424,11 +459,11 @@ if __name__ == "__main__":
     # Test database writer
     from record_segmenter import RecordSegmentationEngine
     from schema_inference import SchemaInferenceEngine
-    
+
     # Create sample records
     engine = RecordSegmentationEngine()
     records = []
-    
+
     # Sample contacts
     for i in range(10):
         record = engine.segment_record("", {
@@ -437,7 +472,7 @@ if __name__ == "__main__":
             "email": f"test{i}@example.com"
         }, provenance={"src_file": "test.csv", "src_offset": i * 100})
         records.append(record)
-    
+
     # Sample messages
     for i in range(10):
         record = engine.segment_record(
@@ -445,11 +480,11 @@ if __name__ == "__main__":
             provenance={"src_file": "messages.json", "src_offset": i * 200}
         )
         records.append(record)
-    
+
     # Infer schemas
     inference_engine = SchemaInferenceEngine()
     schemas = inference_engine.infer_schemas(records, version="1.0.0")
-    
+
     # Debug: Print schemas
     for record_type, schema in schemas.items():
         print(f"\n{'='*60}")
@@ -459,30 +494,30 @@ if __name__ == "__main__":
         print(f"\nCREATE TABLE SQL:")
         sql = DatabaseSchema.create_table_sql(record_type, schema)
         print(sql)
-    
+
     # Write to database
     db_path = "data/test_mvp.db"
     writer = BatchWriter(db_path, batch_size=5)
-    
+
     # Initialize database
     writer.initialize_database(schemas)
-    
+
     # Write records
     def progress(current, total):
         print(f"Progress: {current}/{total} ({current/total:.1%})")
-    
+
     stats = writer.write_records(records, case_id="test_case_001", progress_callback=progress)
-    
+
     print("\n" + "="*60)
     print("Database Write Results")
     print("="*60)
     print(json.dumps(stats.to_dict(), indent=2))
-    
+
     # Get provenance summary
     summary = ProvenanceTracker.get_provenance_summary(db_path, "test_case_001")
     print("\n" + "="*60)
     print("Provenance Summary")
     print("="*60)
     print(json.dumps(summary, indent=2))
-    
+
     print(f"\n✅ Database created at: {db_path}")
