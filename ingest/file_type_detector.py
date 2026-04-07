@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 import logging
 
-from .config import FileTypeConfig, DEFAULT_FILE_TYPE_CONFIG
+from ingest.config import FileTypeConfig, DEFAULT_FILE_TYPE_CONFIG
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
