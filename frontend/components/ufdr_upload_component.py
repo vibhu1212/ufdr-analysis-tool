@@ -102,7 +102,7 @@ def render_ufdr_upload():
             return
         
         # Process button
-        if st.button("🚀 Upload and Process", type="primary", width="stretch"):
+        if st.button("🚀 Upload and Process", type="primary", use_container_width=True):
             case_metadata = {
                 "case_name": case_name,
                 "examiner_name": examiner_name,

@@ -529,17 +529,17 @@ def page_dashboard():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🔍 Start Search", width="stretch"):
+            if st.button("🔍 Start Search", use_container_width=True, help="Go to Unified Search to query evidence using AI"):
                 st.session_state.current_page = "Unified Search"
                 st.rerun()
         
         with col2:
-            if st.button("🕸️ View Network", width="stretch"):
+            if st.button("🕸️ View Network", use_container_width=True, help="Explore communication networks and timeline graphs"):
                 st.session_state.current_page = "Network & Graphs"
                 st.rerun()
         
         with col3:
-            if st.button("📥 Export Data", width="stretch"):
+            if st.button("📥 Export Data", use_container_width=True, help="Export case data to various formats"):
                 st.session_state.current_page = "Network & Graphs"
                 st.rerun()
         

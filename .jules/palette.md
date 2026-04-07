@@ -1,0 +1,3 @@
+## 2025-04-07 - Streamlit Button Invalid Width Argument
+**Learning:** In Streamlit, applying `width="stretch"` to native components like `st.button` or `st.dataframe` does not throw an error but is an invalid argument. It fails silently.
+**Action:** Always use `use_container_width=True` to expand components to the column or container width in Streamlit, avoiding `width="stretch"`. Additionally, when making basic interaction components like `st.button`, use the `help` argument to easily provide context as a tooltip on hover.
