@@ -57,6 +57,11 @@ except ImportError:
     print("Warning: OCR/ASR workers not available")
     OCR_ASR_AVAILABLE = False
 
+    # Mock ASRResult for type hints if not available
+    @dataclass
+    class ASRResult:
+        transcript: str
+
 logger = logging.getLogger(__name__)
 
 
@@ -234,9 +239,17 @@ class VideoProcessor:
                                    if stream['codec_type'] == 'video'), None)
                 
                 if video_stream:
+                    # Security: Avoid eval() on external metadata to prevent RCE. Parse safely.
+                    fps_str = video_stream.get('r_frame_rate', '0/1')
+                    try:
+                        num, den = fps_str.split('/')
+                        fps_val = float(num) / float(den) if float(den) != 0 else 0.0
+                    except (ValueError, ZeroDivisionError):
+                        fps_val = 0.0
+
                     info.update({
                         'duration': float(video_stream.get('duration', 0)),
-                        'fps': eval(video_stream.get('r_frame_rate', '0/1')),
+                        'fps': fps_val,
                         'width': int(video_stream.get('width', 0)),
                         'height': int(video_stream.get('height', 0)),
                         'frame_count': int(video_stream.get('nb_frames', 0)),
