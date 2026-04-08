@@ -363,34 +363,63 @@ class BatchWriter:
 
                     seen_in_batch = set()
 
+                    # ⚡ Bolt Optimization: Use executemany for batch insertions
+                    # To use executemany, all rows in the batch must have the exact same columns.
+                    # We first determine all unique columns across this batch of new records.
+                    records_to_insert = []
+
                     for normalized in normalized_batch:
+                        src_f = normalized.get('src_file')
+                        src_o = normalized.get('src_offset')
+                        key = (src_f, src_o)
+
+                        # O(1) duplicate lookup replacing the individual SELECT statement
+                        if (src_f is not None and src_o is not None) and (key in existing_keys or key in seen_in_batch):
+                            self.stats.skipped += 1
+                            continue
+
+                        if src_f is not None and src_o is not None:
+                            seen_in_batch.add(key)
+
+                        records_to_insert.append(normalized)
+
+                    if records_to_insert:
                         try:
-                            src_f = normalized.get('src_file')
-                            src_o = normalized.get('src_offset')
-                            key = (src_f, src_o)
+                            # Get union of all columns
+                            all_columns = set()
+                            for record in records_to_insert:
+                                all_columns.update(record.keys())
 
-                            # O(1) duplicate lookup replacing the individual SELECT statement
-                            if (src_f is not None and src_o is not None) and (key in existing_keys or key in seen_in_batch):
-                                self.stats.skipped += 1
-                                continue
-
-                            if src_f is not None and src_o is not None:
-                                seen_in_batch.add(key)
-
-                            # Insert
-                            columns = list(normalized.keys())
+                            columns = list(all_columns)
                             placeholders = ','.join(['?' for _ in columns])
-                            values = [normalized[col] for col in columns]
 
-                            cursor.execute(
+                            # Prepare values uniformly
+                            values_list = []
+                            for record in records_to_insert:
+                                values_list.append(tuple(record.get(col) for col in columns))
+
+                            cursor.executemany(
                                 f"INSERT INTO {table_name} ({','.join(columns)}) VALUES ({placeholders})",
-                                values
+                                values_list
                             )
-                            self.stats.inserted += 1
-
+                            self.stats.inserted += len(records_to_insert)
                         except Exception as e:
-                            logger.error(f"Error writing record: {e}")
-                            self.stats.errors += 1
+                            logger.error(f"Error during batch insert (executemany): {e}")
+                            # Fallback to single inserts if batch fails (e.g., due to a single bad record)
+                            logger.info("Falling back to single inserts for this batch")
+                            for record in records_to_insert:
+                                try:
+                                    cols = list(record.keys())
+                                    plchldrs = ','.join(['?' for _ in cols])
+                                    vals = [record[col] for col in cols]
+                                    cursor.execute(
+                                        f"INSERT INTO {table_name} ({','.join(cols)}) VALUES ({plchldrs})",
+                                        vals
+                                    )
+                                    self.stats.inserted += 1
+                                except Exception as inner_e:
+                                    logger.error(f"Error writing record individually: {inner_e}")
+                                    self.stats.errors += 1
 
                     # Commit batch
                     conn.commit()

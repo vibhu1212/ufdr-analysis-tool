@@ -235,4 +235,5 @@ infra/offline_bundle/*
 # ============================================================================
 # Test Data (keep test data directory)
 # ============================================================================
-# test_data/ directory is included by default
+# test_data/ directory is included by defaultdata/ingestion_workspace/
+data/test_e2e/
