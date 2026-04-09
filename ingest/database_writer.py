@@ -362,6 +362,7 @@ class BatchWriter:
                                 logger.error(f"Error during batch duplicate check: {e}")
 
                     seen_in_batch = set()
+                    records_to_insert = []
 
                     for normalized in normalized_batch:
                         try:
@@ -377,20 +378,49 @@ class BatchWriter:
                             if src_f is not None and src_o is not None:
                                 seen_in_batch.add(key)
 
-                            # Insert
-                            columns = list(normalized.keys())
-                            placeholders = ','.join(['?' for _ in columns])
-                            values = [normalized[col] for col in columns]
-
-                            cursor.execute(
-                                f"INSERT INTO {table_name} ({','.join(columns)}) VALUES ({placeholders})",
-                                values
-                            )
-                            self.stats.inserted += 1
+                            records_to_insert.append(normalized)
 
                         except Exception as e:
-                            logger.error(f"Error writing record: {e}")
+                            logger.error(f"Error checking record: {e}")
                             self.stats.errors += 1
+
+                    if records_to_insert:
+                        try:
+                            # Insert using executemany for bulk performance
+                            # Gather all unique columns across the batch to avoid missing keys
+                            all_columns = set()
+                            for record in records_to_insert:
+                                all_columns.update(record.keys())
+                            columns = list(all_columns)
+
+                            placeholders = ','.join(['?' for _ in columns])
+
+                            batch_values = [
+                                tuple(record.get(col) for col in columns)
+                                for record in records_to_insert
+                            ]
+
+                            cursor.executemany(
+                                f"INSERT INTO {table_name} ({','.join(columns)}) VALUES ({placeholders})",
+                                batch_values
+                            )
+                            self.stats.inserted += len(records_to_insert)
+                        except Exception as e:
+                            logger.error(f"Error writing records in bulk: {e}")
+                            # Fallback to single inserts if batch fails
+                            for record in records_to_insert:
+                                try:
+                                    record_columns = list(record.keys())
+                                    record_placeholders = ','.join(['?' for _ in record_columns])
+                                    record_values = [record[col] for col in record_columns]
+                                    cursor.execute(
+                                        f"INSERT INTO {table_name} ({','.join(record_columns)}) VALUES ({record_placeholders})",
+                                        record_values
+                                    )
+                                    self.stats.inserted += 1
+                                except Exception as inner_e:
+                                    logger.error(f"Error writing single record during fallback: {inner_e}")
+                                    self.stats.errors += 1
 
                     # Commit batch
                     conn.commit()

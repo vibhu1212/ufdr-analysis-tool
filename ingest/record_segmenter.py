@@ -143,7 +143,7 @@ class HeuristicSegmenter:
         """
         if not HAS_PHONENUMBERS:
             # Fallback normalization
-            phone = re.sub(r'[\s-\(\)]', '', phone)
+            phone = re.sub(r'[\s\-\(\)]', '', phone)
             if not phone.startswith('+'):
                 if phone.startswith('91') and len(phone) == 12:
                     phone = '+' + phone
