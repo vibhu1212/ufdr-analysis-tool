@@ -1,3 +1,6 @@
 ## 2025-04-07 - [Optimize Database Batch Inserts]
 **Learning:** During database ingestion in `ingest/database_writer.py`, iterating over records and firing off a `SELECT` statement per record to check for duplicates created a severe N+1 problem. This slowed down ingestion significantly.
 **Action:** Replaced the N+1 `SELECT` statements with a batch pre-fetch strategy. Specifically, chunked records (e.g., 400 at a time) and used an `OR` chained query to load existing keys into memory for O(1) duplicate checking. This honors the SQLite parameter limit (<999) while radically reducing the number of round trips. Next time, always avoid N+1 database operations inside iteration blocks, especially during batch operations.
+## 2025-05-24 - [SQLite Executemany Data Loss Trap]
+**Learning:** When refactoring iterative `cursor.execute()` inserts to `cursor.executemany()` for bulk dictionaries, assuming the first dictionary's keys (`columns = list(batch[0].keys())`) represent the entire batch can lead to silent data loss if dictionaries have varying sparse keys.
+**Action:** Always compute the union of all keys present across the entire batch (e.g., using `set.update()`) before extracting the values tuple for `executemany`.
