@@ -1,0 +1,57 @@
+{
+  "ingestion_id": "c03c4b53-0319-4222-8c61-2eb2b8f990a4",
+  "source_path": "data/test_e2e",
+  "source_type": "folder",
+  "total_files": 3,
+  "total_size_bytes": 1065,
+  "created_at": "2026-04-10T04:45:15.804492Z",
+  "workspace_path": "data/ingestion_workspace/c03c4b53-0319-4222-8c61-2eb2b8f990a4",
+  "files": [
+    {
+      "file_id": "d82ea356-592e-4229-81cf-a7bf516bfc5c",
+      "original_path": "data/test_e2e/call_logs.txt",
+      "extracted_path": "data/ingestion_workspace/c03c4b53-0319-4222-8c61-2eb2b8f990a4/call_logs.txt",
+      "filename": "call_logs.txt",
+      "file_size": 336,
+      "mime_type": "text/plain",
+      "extension": ".txt",
+      "sha256_hash": "e72bde13f115b7902e0c375e1ba2425c0f870b1b61d9b2d5c67880751ff93422",
+      "byte_offset": 0,
+      "timestamp": "2026-04-10T04:45:15.802996Z",
+      "parent_archive": null,
+      "metadata": {}
+    },
+    {
+      "file_id": "a2c50a9c-0d6b-47e6-a1d8-bb1023443731",
+      "original_path": "data/test_e2e/contacts.csv",
+      "extracted_path": "data/ingestion_workspace/c03c4b53-0319-4222-8c61-2eb2b8f990a4/contacts.csv",
+      "filename": "contacts.csv",
+      "file_size": 249,
+      "mime_type": "text/csv",
+      "extension": ".csv",
+      "sha256_hash": "4c938fdfc693e06105f1e02669927f10403da307d4f9d9f2f6b594b0a3a72f35",
+      "byte_offset": 0,
+      "timestamp": "2026-04-10T04:45:15.803913Z",
+      "parent_archive": null,
+      "metadata": {}
+    },
+    {
+      "file_id": "9796150b-6bd3-4cfe-9e66-e2034336d06a",
+      "original_path": "data/test_e2e/messages.json",
+      "extracted_path": "data/ingestion_workspace/c03c4b53-0319-4222-8c61-2eb2b8f990a4/messages.json",
+      "filename": "messages.json",
+      "file_size": 480,
+      "mime_type": "application/json",
+      "extension": ".json",
+      "sha256_hash": "2ee5394a67ce6f786d5ac2e3500b4811b7be4735e621484477830e7c264a04ff",
+      "byte_offset": 0,
+      "timestamp": "2026-04-10T04:45:15.804466Z",
+      "parent_archive": null,
+      "metadata": {}
+    }
+  ],
+  "metadata": {
+    "source_type": "folder",
+    "recursive": true
+  }
+}
