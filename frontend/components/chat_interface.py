@@ -253,6 +253,18 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
+    if not st.session_state.messages:
+        # Display an empty state / welcome message
+        st.info(
+            "👋 **Welcome to Unified Search**\n\n"
+            "I am your AI assistant. I can search through case evidence, "
+            "analyze patterns, and help you find connections.\n\n"
+            "**Try asking:**\n"
+            "- *Show me recent messages*\n"
+            "- *Summarize communications for [Name]*\n"
+            "- *What are the key locations mentioned?*"
+        )
+
     for message in st.session_state.messages:
         display_chat_message(
             message["role"],
