@@ -252,6 +252,14 @@ def render_chat_interface(selected_cases: list[str]):
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
+    if not st.session_state.messages:
+        with st.chat_message("assistant", avatar="🤖"):
+            st.markdown("👋 **Welcome to the AI Evidence Assistant!**")
+            st.markdown("I can help you analyze forensic data, find connections, and explore case evidence. Here are some examples of what you can ask:")
+            st.info("🔍 *'Find all messages related to meeting at the warehouse'*")
+            st.info("📞 *'Who did the suspect communicate with the most?'*")
+            st.info("📍 *'Show me the locations visited on March 15th'*")
+
     # Display existing chat history
     for message in st.session_state.messages:
         display_chat_message(
