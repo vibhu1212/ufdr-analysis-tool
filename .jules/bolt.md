@@ -1,3 +1,7 @@
 ## 2025-04-07 - [Optimize Database Batch Inserts]
 **Learning:** During database ingestion in `ingest/database_writer.py`, iterating over records and firing off a `SELECT` statement per record to check for duplicates created a severe N+1 problem. This slowed down ingestion significantly.
 **Action:** Replaced the N+1 `SELECT` statements with a batch pre-fetch strategy. Specifically, chunked records (e.g., 400 at a time) and used an `OR` chained query to load existing keys into memory for O(1) duplicate checking. This honors the SQLite parameter limit (<999) while radically reducing the number of round trips. Next time, always avoid N+1 database operations inside iteration blocks, especially during batch operations.
+
+## 2025-04-13 - [Optimize Pandas Iteration]
+**Learning:** During location visualization generation in `visualization/geo_viz.py`, iterating over Pandas DataFrames using `df.iterrows()` to construct map markers and heatmaps caused severe Python-level loop overhead. `iterrows()` yields a Series for each row, which is extremely slow due to boxing/unboxing overhead.
+**Action:** Replaced `df.iterrows()` with `df.itertuples(index=False)` for constructing individual markers, which is ~10-50x faster. For purely extracting data like coordinates for heatmaps (`heat_data`), replaced the loop entirely with vectorized `.values.tolist()`. Always avoid `iterrows()` in production data visualization pipelines.
