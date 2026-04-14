@@ -5,11 +5,11 @@ Provides a ChatGPT-style conversational UI with:
 - Table rendering for structured data (contacts, calls, messages)
 - Rich media evidence cards for unstructured data
 """
-import sys
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -166,14 +166,12 @@ def _render_chart(citations: list[dict], data_type: str):
 
     df = pd.DataFrame({"Time": timestamps})
     df["Count"] = 1
-    
+
     # Resample by hour or day depending on range
     if (max(timestamps) - min(timestamps)).days > 2:
         resampled = df.set_index("Time").resample("d").count().reset_index()
-        x_label = "Date"
     else:
         resampled = df.set_index("Time").resample("h").count().reset_index()
-        x_label = "Time (Hourly)"
 
     st.caption(f"📈 {data_type.title()} Activity Over Time")
     st.line_chart(resampled, x="Time", y="Count", color="#2ecc71")
@@ -209,29 +207,32 @@ def display_chat_message(role: str, content: str, citations: list | None = None,
 
         if citations and role == "assistant":
             st.markdown("---")
-            
+
             # Determine dominant data type
             data_types = [c.get("data_type", "unknown") for c in citations]
             if data_types:
                 dominant_type = max(set(data_types), key=data_types.count)
             else:
                 dominant_type = "unknown"
-            
+
             # 1. Timeline Chart (for messages/calls)
             if dominant_type in ("message", "call"):
                 _render_chart(citations, dominant_type)
-            
+
             # 2. Map (for locations)
             if dominant_type == "location" or any(c.get("data_type") == "location" for c in citations):
-                _render_map([c for c in citations if c.get("data_type") == "location"])
+                _render_map(
+                    [c for c in citations if c.get("data_type") == "location"])
 
             # 3. Data Table (Structured View)
             # Only show table if we have structured data and it hasn't been rendered as a map only
             if dominant_type in ("contact", "message", "call", "location", "media"):
                 with st.expander(f"📊 View {dominant_type.title()} Data Table", expanded=True):
                     # Filter citations to ensure table consistency
-                    table_citations = [c for c in citations if c.get("data_type") == dominant_type]
-                    _render_as_table(table_citations, "browse")  # force table render logic
+                    table_citations = [c for c in citations if c.get(
+                        "data_type") == dominant_type]
+                    # force table render logic
+                    _render_as_table(table_citations, "browse")
 
             # 4. Evidence Cards (Detailed View)
             with st.expander(f"📋 {len(citations)} Supporting Trace Items", expanded=False):
@@ -253,13 +254,37 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    if not st.session_state.messages:
+        # Empty State UI
+        st.markdown("""
+        <div style="text-align: center; padding: 3rem 1rem; color: var(--text-secondary);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+            <h3>How can I help you investigate?</h3>
+            <p style="margin-bottom: 2rem;">Try asking about specific contacts, events, or patterns.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Example queries
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.info(
+                "**Find Evidence**\n\n*\"Show me all messages regarding the meeting on Tuesday.\"*")
+        with col2:
+            st.warning(
+                "**Analyze Contacts**\n\n*\"Summarize interactions between John Doe and Jane Smith.\"*")
+        with col3:
+            st.success(
+                "**Trace Locations**\n\n*\"Where was the suspect on the night of October 31st?\"*")
+
+        st.markdown("<br><br>", unsafe_allow_html=True)
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
@@ -275,7 +300,8 @@ def render_chat_interface(selected_cases: list[str]):
             try:
                 engine = get_query_engine()
                 if not engine:
-                    raise ImportError("RAG Engine not loaded. Check dependencies.")
+                    raise ImportError(
+                        "RAG Engine not loaded. Check dependencies.")
 
                 result = engine.query(
                     query_text=prompt,
