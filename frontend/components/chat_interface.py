@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -251,6 +252,21 @@ def render_chat_interface(selected_cases: list[str]):
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    # Display empty state if no history
+    if not st.session_state.messages:
+        st.markdown("### 👋 Welcome to the Forensic AI Assistant!")
+        st.markdown("I can analyze the uploaded UFDR evidence and answer your questions. Here are a few examples to get started:")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info("💡 **Try asking:**\n\"Who did John Doe communicate with the most?\"")
+            st.info("💡 **Try asking:**\n\"Are there any suspicious locations or late-night movements?\"")
+        with col2:
+            st.info("💡 **Try asking:**\n\"Summarize the key events from December 24th to 26th.\"")
+            st.info("💡 **Try asking:**\n\"What media files were shared between Alice and Bob?\"")
+
+        st.markdown("---")
 
     # Display existing chat history
     for message in st.session_state.messages:
