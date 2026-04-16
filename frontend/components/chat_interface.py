@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -251,6 +252,20 @@ def render_chat_interface(selected_cases: list[str]):
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    # Empty State UX
+    if not st.session_state.messages:
+        st.markdown("""
+        <div style="padding: 2rem; border-radius: 0.5rem; background-color: var(--background-secondary); border: 1px solid var(--border-color); margin-bottom: 2rem;">
+            <h3 style="margin-top: 0;">👋 Welcome to Forensic Chat</h3>
+            <p style="color: var(--text-secondary);">Ask natural language questions about the selected case(s). Here are some example queries to get you started:</p>
+            <ul>
+                <li><em>"Show me all messages containing cryptocurrency addresses"</em></li>
+                <li><em>"Find all contacts who communicated with +1-555-0123"</em></li>
+                <li><em>"Show messages with coordinates or location pins"</em></li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Display existing chat history
     for message in st.session_state.messages:
