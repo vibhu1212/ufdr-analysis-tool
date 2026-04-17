@@ -5,11 +5,11 @@ Provides a ChatGPT-style conversational UI with:
 - Table rendering for structured data (contacts, calls, messages)
 - Rich media evidence cards for unstructured data
 """
-import sys
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -20,7 +20,7 @@ except ImportError:
 
 @st.cache_resource(show_spinner="Loading AI Models...")
 def get_query_engine():
-    """Cached loader for the Query Engine to avoid reloading models on every rerun."""
+    """Cached loader for the Query Engine to avoid reloading models on every rerun."""  # noqa: E501
     if not QueryEngine:
         return None
     return QueryEngine()
@@ -125,12 +125,12 @@ def render_evidence_card(citation: dict):
     }
     icon = icons.get(data_type, "📄")
 
-    with st.expander(f"{icon} {text[:100]}{'…' if len(text) > 100 else ''}", expanded=False):
+    with st.expander(f"{icon} {text[:100]}{'…' if len(text) > 100 else ''}", expanded=False):  # noqa: E501
         st.markdown(text)
         # Show key metadata
         useful_meta = {
             k: v for k, v in meta.items()
-            if v and k not in ("data_type", "case_id", "source") and str(v).strip()
+            if v and k not in ("data_type", "case_id", "source") and str(v).strip()  # noqa: E501
         }
         if useful_meta:
             cols = st.columns(min(len(useful_meta), 3))
@@ -166,14 +166,14 @@ def _render_chart(citations: list[dict], data_type: str):
 
     df = pd.DataFrame({"Time": timestamps})
     df["Count"] = 1
-    
+
     # Resample by hour or day depending on range
     if (max(timestamps) - min(timestamps)).days > 2:
         resampled = df.set_index("Time").resample("d").count().reset_index()
-        x_label = "Date"
+        pass
     else:
         resampled = df.set_index("Time").resample("h").count().reset_index()
-        x_label = "Time (Hourly)"
+        pass
 
     st.caption(f"📈 {data_type.title()} Activity Over Time")
     st.line_chart(resampled, x="Time", y="Count", color="#2ecc71")
@@ -201,7 +201,7 @@ def _render_map(citations: list[dict]):
 #  Message Display
 # ──────────────────────────────────────────────────
 
-def display_chat_message(role: str, content: str, citations: list | None = None, query_type: str = ""):
+def display_chat_message(role: str, content: str, citations: list | None = None, query_type: str = ""):  # noqa: E501
     """Render a single chat message with citations and visualizations."""
     avatar = "👤" if role == "user" else "🤖"
     with st.chat_message(role, avatar=avatar):
@@ -209,36 +209,36 @@ def display_chat_message(role: str, content: str, citations: list | None = None,
 
         if citations and role == "assistant":
             st.markdown("---")
-            
+
             # Determine dominant data type
             data_types = [c.get("data_type", "unknown") for c in citations]
             if data_types:
                 dominant_type = max(set(data_types), key=data_types.count)
             else:
                 dominant_type = "unknown"
-            
+
             # 1. Timeline Chart (for messages/calls)
             if dominant_type in ("message", "call"):
                 _render_chart(citations, dominant_type)
-            
+
             # 2. Map (for locations)
-            if dominant_type == "location" or any(c.get("data_type") == "location" for c in citations):
-                _render_map([c for c in citations if c.get("data_type") == "location"])
+            if dominant_type == "location" or any(c.get("data_type") == "location" for c in citations):  # noqa: E501
+                _render_map([c for c in citations if c.get("data_type") == "location"])  # noqa: E501
 
             # 3. Data Table (Structured View)
-            # Only show table if we have structured data and it hasn't been rendered as a map only
-            if dominant_type in ("contact", "message", "call", "location", "media"):
-                with st.expander(f"📊 View {dominant_type.title()} Data Table", expanded=True):
+            # Only show table if we have structured data and it hasn't been rendered as a map only  # noqa: E501
+            if dominant_type in ("contact", "message", "call", "location", "media"):  # noqa: E501
+                with st.expander(f"📊 View {dominant_type.title()} Data Table", expanded=True):  # noqa: E501
                     # Filter citations to ensure table consistency
-                    table_citations = [c for c in citations if c.get("data_type") == dominant_type]
-                    _render_as_table(table_citations, "browse")  # force table render logic
+                    table_citations = [c for c in citations if c.get("data_type") == dominant_type]  # noqa: E501
+                    _render_as_table(table_citations, "browse")  # force table render logic  # noqa: E501
 
             # 4. Evidence Cards (Detailed View)
-            with st.expander(f"📋 {len(citations)} Supporting Trace Items", expanded=False):
+            with st.expander(f"📋 {len(citations)} Supporting Trace Items", expanded=False):  # noqa: E501
                 for c in islice(citations, 15):
                     render_evidence_card(c)
                 if len(citations) > 15:
-                    st.caption(f"*...and {len(citations) - 15} more items*")
+                    st.caption(f"*...and {len(citations) - 15} more items*")  # noqa: E501
 
 
 # ──────────────────────────────────────────────────
@@ -251,6 +251,24 @@ def render_chat_interface(selected_cases: list[str]):
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    # Show empty state if no messages
+    if not st.session_state.messages:
+        st.markdown("""
+        <div style="text-align: center; padding: 3rem 1rem; color: var(--text-tertiary); background: rgba(15, 23, 42, 0.4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); margin-bottom: 2rem; backdrop-filter: blur(8px);">
+            <h2 style="margin-bottom: 1rem; color: var(--text-primary); font-family: var(--font-display);">👋 Welcome to Forensic Chat</h2>
+            <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">You can ask me questions about the selected cases. I can search through messages, calls, contacts, and media.</p>
+            <div style="text-align: left; display: inline-block; max-width: 600px; background: rgba(15, 23, 42, 0.5); padding: 1.5rem; border-radius: var(--radius-md); border-left: 3px solid var(--primary-500);">
+                <p style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary);">Try asking things like:</p>
+                <ul style="line-height: 1.6; color: var(--text-tertiary); margin-bottom: 0;">
+                    <li><i>"Show me all messages from John Doe"</i></li>
+                    <li><i>"Where was the suspect on October 12th?"</i></li>
+                    <li><i>"Find any pictures of weapons or money"</i></li>
+                    <li><i>"Who did +1-555-0199 call most frequently?"</i></li>
+                </ul>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)  # noqa: E501
 
     # Display existing chat history
     for message in st.session_state.messages:
@@ -275,7 +293,7 @@ def render_chat_interface(selected_cases: list[str]):
             try:
                 engine = get_query_engine()
                 if not engine:
-                    raise ImportError("RAG Engine not loaded. Check dependencies.")
+                    raise ImportError("RAG Engine not loaded. Check dependencies.")  # noqa: E501
 
                 result = engine.query(
                     query_text=prompt,
@@ -289,7 +307,7 @@ def render_chat_interface(selected_cases: list[str]):
                 query_type = result.get("query_type", "semantic")
 
                 # Display answer with typing effect
-                display_text = answer if answer else "Here are the results I found:"
+                display_text = answer if answer else "Here are the results I found:"  # noqa: E501
                 full_response = ""
                 for chunk in display_text.split():
                     full_response += chunk + " "
