@@ -5,11 +5,11 @@ Provides a ChatGPT-style conversational UI with:
 - Table rendering for structured data (contacts, calls, messages)
 - Rich media evidence cards for unstructured data
 """
-import sys
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -251,6 +251,23 @@ def render_chat_interface(selected_cases: list[str]):
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    # Display empty state if no messages
+    if not st.session_state.messages:
+        st.markdown("""
+        <div style="text-align: center; padding: 2rem; border-radius: 8px; border: 1px dashed #6c757d; margin-bottom: 2rem;">
+            <h3 style="margin-top: 0; color: #495057;">Welcome to the Unified Search Chat</h3>
+            <p style="color: #6c757d;">I can help you analyze forensic evidence across your selected cases.</p>
+            <div style="margin-top: 1rem; font-size: 0.9em; color: #6c757d;">
+                <strong>Try asking:</strong>
+                <ul style="list-style-type: none; padding-left: 0; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <li><em>"Show me all communications between John and Mary."</em></li>
+                    <li><em>"Find any references to the missing hard drive."</em></li>
+                    <li><em>"Summarize the main events on January 15th."</em></li>
+                </ul>
+            </div>
+        </div>
+        """, unsafe_allow_html=True) # noqa: E501
 
     # Display existing chat history
     for message in st.session_state.messages:
