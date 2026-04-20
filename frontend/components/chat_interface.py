@@ -5,11 +5,11 @@ Provides a ChatGPT-style conversational UI with:
 - Table rendering for structured data (contacts, calls, messages)
 - Rich media evidence cards for unstructured data
 """
-import sys
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -170,10 +170,8 @@ def _render_chart(citations: list[dict], data_type: str):
     # Resample by hour or day depending on range
     if (max(timestamps) - min(timestamps)).days > 2:
         resampled = df.set_index("Time").resample("d").count().reset_index()
-        x_label = "Date"
     else:
         resampled = df.set_index("Time").resample("h").count().reset_index()
-        x_label = "Time (Hourly)"
 
     st.caption(f"📈 {data_type.title()} Activity Over Time")
     st.line_chart(resampled, x="Time", y="Count", color="#2ecc71")
@@ -253,13 +251,33 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    if not st.session_state.messages:
+        # Empty state with welcome message and example queries
+        st.markdown("""
+        <div style="text-align: center; padding: 3rem 1rem; color: #6c757d;">
+            <h2 style="margin-bottom: 1rem;">🤖 How can I help you analyze this case?</h2>
+            <p style="margin-bottom: 2rem;">Here are some example questions you can ask about the evidence:</p>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: center;">
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 0.75rem 1.5rem; width: 80%; max-width: 500px; text-align: left;">
+                    <span style="margin-right: 0.5rem;">🔍</span> Who did John Doe communicate with the most?
+                </div>
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 0.75rem 1.5rem; width: 80%; max-width: 500px; text-align: left;">
+                    <span style="margin-right: 0.5rem;">📍</span> Where was the suspect located on Friday night?
+                </div>
+                <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 0.75rem 1.5rem; width: 80%; max-width: 500px; text-align: left;">
+                    <span style="margin-right: 0.5rem;">📱</span> Show me all messages mentioning "meeting".
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
