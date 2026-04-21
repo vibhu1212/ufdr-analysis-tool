@@ -88,7 +88,7 @@ $pythonVersion = python --version 2>&1
 if ($pythonVersion -match "Python (\d+)\.(\d+)") {
     $majorVersion = [int]$matches[1]
     $minorVersion = [int]$matches[2]
-    
+
     if ($majorVersion -lt 3 -or ($majorVersion -eq 3 -and $minorVersion -lt 9)) {
         Write-Error "Python 3.9+ is required. Found: $pythonVersion"
         exit 1
@@ -198,13 +198,13 @@ foreach ($dir in $dataDirs) {
 if (-not $SkipDependencies) {
     Write-Info "`n[5/8] Installing Python Dependencies..."
     Write-Warning "This may take 10-15 minutes..."
-    
+
     Set-Location $InstallPath
-    
+
     # Upgrade pip
     Write-Info "Upgrading pip..."
     python -m pip install --upgrade pip 2>&1 | Out-Null
-    
+
     # Install core dependencies
     Write-Info "Installing core dependencies..."
     pip install -r requirements.txt --no-warn-script-location 2>&1 | Out-Null
@@ -214,7 +214,7 @@ if (-not $SkipDependencies) {
         Write-Error "Failed to install core dependencies"
         exit 1
     }
-    
+
     # Install additional UI dependencies just in case
     Write-Info "Installing additional UI dependencies..."
     pip install streamlit plotly pandas networkx --no-warn-script-location 2>&1 | Out-Null
@@ -230,6 +230,9 @@ if (-not $SkipDependencies) {
 # Create Configuration Files
 Write-Info "`n[6/8] Creating Configuration Files..."
 
+# Generate secure password for Neo4j
+$SecureNeo4jPassword = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 16 | ForEach-Object { [char]$_ })
+
 $configContent = @"
 # UFDR Analysis Tool Configuration
 # Generated on: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
@@ -240,7 +243,7 @@ INSTALL_PATH=$InstallPath
 # Neo4j Configuration (if using)
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=password123
+NEO4J_PASSWORD=$SecureNeo4jPassword
 
 # Security
 ENABLE_ENCRYPTION=true

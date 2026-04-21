@@ -34,7 +34,7 @@ EOF
 echo -e "${NC}"
 
 # Check if running as root
-if [ "$EUID" -ne 0 ]; then 
+if [ "$EUID" -ne 0 ]; then
     print_error "This script must be run as root (use sudo)"
     exit 1
 fi
@@ -212,13 +212,13 @@ done
 if [ "$SKIP_DEPS" != true ]; then
     print_info "\n[5/8] Installing Python Dependencies..."
     print_warning "This may take 10-15 minutes..."
-    
+
     cd "$INSTALL_PATH"
-    
+
     # Upgrade pip
     print_info "Upgrading pip..."
     python3 -m pip install --upgrade pip > /dev/null 2>&1
-    
+
     # Install core dependencies
     print_info "Installing core dependencies..."
     pip3 install -r requirements.txt --no-warn-script-location > /dev/null 2>&1
@@ -228,7 +228,7 @@ if [ "$SKIP_DEPS" != true ]; then
         print_error "Failed to install core dependencies"
         exit 1
     fi
-    
+
     # Install additional UI dependencies just in case
     print_info "Installing additional UI dependencies..."
     pip3 install streamlit plotly pandas networkx > /dev/null 2>&1
@@ -244,6 +244,9 @@ fi
 # Create Configuration Files
 print_info "\n[6/8] Creating Configuration Files..."
 
+# Generate secure password for Neo4j
+SECURE_NEO4J_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+
 cat > "$INSTALL_PATH/config.env" << EOF
 # UFDR Analysis Tool Configuration
 # Generated on: $(date '+%Y-%m-%d %H:%M:%S')
@@ -254,7 +257,7 @@ INSTALL_PATH=$INSTALL_PATH
 # Neo4j Configuration (if using)
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=password123
+NEO4J_PASSWORD=$SECURE_NEO4J_PASSWORD
 
 # Security
 ENABLE_ENCRYPTION=true
