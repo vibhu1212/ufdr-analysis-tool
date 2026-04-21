@@ -5,11 +5,11 @@ Provides a ChatGPT-style conversational UI with:
 - Table rendering for structured data (contacts, calls, messages)
 - Rich media evidence cards for unstructured data
 """
-import sys
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -170,10 +170,8 @@ def _render_chart(citations: list[dict], data_type: str):
     # Resample by hour or day depending on range
     if (max(timestamps) - min(timestamps)).days > 2:
         resampled = df.set_index("Time").resample("d").count().reset_index()
-        x_label = "Date"
     else:
         resampled = df.set_index("Time").resample("h").count().reset_index()
-        x_label = "Time (Hourly)"
 
     st.caption(f"📈 {data_type.title()} Activity Over Time")
     st.line_chart(resampled, x="Time", y="Count", color="#2ecc71")
@@ -252,14 +250,27 @@ def render_chat_interface(selected_cases: list[str]):
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    # Display existing chat history or empty state
+    if not st.session_state.messages:
+        st.markdown("""
+        <div style="text-align: center; padding: 3rem; color: #6c757d; border: 1px dashed #6c757d; border-radius: 8px; margin: 2rem 0;">
+            <h3>👋 Welcome to the Forensic Chat Assistant</h3>
+            <p>I can help you analyze the evidence in the selected cases. Ask me questions like:</p>
+            <ul style="list-style-type: none; padding: 0;">
+                <li><em>"Who did John Doe talk to the most?"</em></li>
+                <li><em>"Are there any discussions about crypto or bitcoin?"</em></li>
+                <li><em>"Show me all locations visited on October 12th."</em></li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
