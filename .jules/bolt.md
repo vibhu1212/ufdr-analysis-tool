@@ -1,3 +1,7 @@
 ## 2025-04-07 - [Optimize Database Batch Inserts]
 **Learning:** During database ingestion in `ingest/database_writer.py`, iterating over records and firing off a `SELECT` statement per record to check for duplicates created a severe N+1 problem. This slowed down ingestion significantly.
 **Action:** Replaced the N+1 `SELECT` statements with a batch pre-fetch strategy. Specifically, chunked records (e.g., 400 at a time) and used an `OR` chained query to load existing keys into memory for O(1) duplicate checking. This honors the SQLite parameter limit (<999) while radically reducing the number of round trips. Next time, always avoid N+1 database operations inside iteration blocks, especially during batch operations.
+
+## 2023-10-24 - [Optimize Pandas Iteration with itertuples]
+**Learning:** `df.iterrows()` inside `visualization/` components was highly inefficient. It creates a complete Pandas Series object for each row which severely limits iterations per second, impacting load times when visualizations handle huge amounts of forensic data points. Vectorized actions and standard `itertuples(index=False)` are exponentially faster without changing the structural logic.
+**Action:** Replaced `df.iterrows()` with `df.itertuples(index=False)` inside python loops in visualization codes, and applied `df[['latitude', 'longitude']].values.tolist()` for creating multi-dimensional coordinate arrays natively on the C side to skip Python's slow loop processing altogether. Never use `iterrows()` on datasets larger than a few rows.
