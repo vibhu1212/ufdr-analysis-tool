@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -253,13 +254,28 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    if not st.session_state.messages:
+        # Empty state / Welcome message
+        st.markdown("""
+        <div style="text-align: center; padding: 3rem; color: var(--text-secondary); background: rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 2rem;">
+            <h2>🕵️‍♀️ Forensic AI Assistant</h2>
+            <p>I can help you analyze the selected cases. Ask me questions like:</p>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; align-items: center;">
+                <code style="background: rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">Who did John contact the most?</code>
+                <code style="background: rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">Show me all messages containing 'meeting'</code>
+                <code style="background: rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">Where was the device on Friday night?</code>
+                <code style="background: rgba(0,0,0,0.1); padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">Summarize communications with Alice</code>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)  # noqa: E501
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
