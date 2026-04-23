@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -253,6 +254,19 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
+    if not st.session_state.messages:
+        st.markdown("""
+        <div style="text-align: center; padding: 2rem; margin-bottom: 2rem; border-radius: 10px; background-color: rgba(0,0,0,0.05);">
+            <h3 style="color: #4a5568; margin-bottom: 1rem;">👋 Welcome to the Unified Query Search</h3>
+            <p style="color: #6c757d; margin-bottom: 1.5rem;">I can help you analyze forensic evidence across your selected cases.</p>
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                <span style="background: white; padding: 8px 12px; border-radius: 20px; font-size: 0.9em; border: 1px solid #e2e8f0; color: #4a5568;">"Show me recent locations"</span>
+                <span style="background: white; padding: 8px 12px; border-radius: 20px; font-size: 0.9em; border: 1px solid #e2e8f0; color: #4a5568;">"Find messages about meetings"</span>
+                <span style="background: white; padding: 8px 12px; border-radius: 20px; font-size: 0.9em; border: 1px solid #e2e8f0; color: #4a5568;">"List all contacts"</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
     for message in st.session_state.messages:
         display_chat_message(
             message["role"],
