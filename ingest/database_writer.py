@@ -353,7 +353,7 @@ class BatchWriter:
                                 params.extend([src_f, src_o])
 
                         if conditions:
-                            query = f"SELECT src_file, src_offset FROM {table_name} WHERE case_id = ? AND ({' OR '.join(conditions)})"
+                            query = f'SELECT src_file, src_offset FROM "{table_name}" WHERE case_id = ? AND ({" OR ".join(conditions)})'
                             try:
                                 cursor.execute(query, params)
                                 for row in cursor.fetchall():
@@ -383,7 +383,7 @@ class BatchWriter:
                             values = [normalized[col] for col in columns]
 
                             cursor.execute(
-                                f"INSERT INTO {table_name} ({','.join(columns)}) VALUES ({placeholders})",
+                                f'INSERT INTO "{table_name}" ({",".join(columns)}) VALUES ({placeholders})',
                                 values
                             )
                             self.stats.inserted += 1
@@ -439,7 +439,7 @@ class ProvenanceTracker:
         for table in ['contacts', 'messages', 'call_logs']:
             try:
                 cursor.execute(
-                    f"SELECT COUNT(*), AVG(detection_confidence) FROM {table} WHERE case_id = ?",
+                    f'SELECT COUNT(*), AVG(detection_confidence) FROM "{table}" WHERE case_id = ?',
                     (case_id,)
                 )
                 count, avg_conf = cursor.fetchone()

@@ -88,7 +88,7 @@ class CaseIndexer:
                 
                 # Fetch all rows for this case
                 cursor.execute(
-                    f"SELECT * FROM {table} WHERE case_id = ?", (case_id,)
+                    f'SELECT * FROM "{table}" WHERE case_id = ?', (case_id,)
                 )
                 rows = [dict(row) for row in cursor.fetchall()]
                 
