@@ -5,11 +5,11 @@ Provides a ChatGPT-style conversational UI with:
 - Table rendering for structured data (contacts, calls, messages)
 - Rich media evidence cards for unstructured data
 """
-import sys
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -170,10 +170,8 @@ def _render_chart(citations: list[dict], data_type: str):
     # Resample by hour or day depending on range
     if (max(timestamps) - min(timestamps)).days > 2:
         resampled = df.set_index("Time").resample("d").count().reset_index()
-        x_label = "Date"
     else:
         resampled = df.set_index("Time").resample("h").count().reset_index()
-        x_label = "Time (Hourly)"
 
     st.caption(f"📈 {data_type.title()} Activity Over Time")
     st.line_chart(resampled, x="Time", y="Count", color="#2ecc71")
@@ -253,13 +251,23 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    if not st.session_state.messages:
+        # Empty state / Welcome message
+        with st.chat_message("assistant", avatar="🤖"):
+            st.markdown("### 👋 Welcome to Unified Search")
+            st.markdown("I can help you search and analyze evidence across the selected cases. Ask me anything!")
+            st.markdown("**Try asking:**")
+            st.markdown("- *\"Show me all messages sent by John yesterday\"*")
+            st.markdown("- *\"Find locations visited near the airport\"*")
+            st.markdown("- *\"Are there any deleted media files?\"*")
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
