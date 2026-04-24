@@ -143,7 +143,7 @@ def count_records(case_ids: List[str], record_type: str) -> Dict[str, Any]:
     if not table:
         return {"error": f"Invalid record type: {record_type}"}
 
-    query = f"SELECT COUNT(*) as count FROM {table} WHERE case_id IN ({','.join('?' * len(case_ids))})"
+    query = f'SELECT COUNT(*) as count FROM "{table}" WHERE case_id IN ({",".join("?" * len(case_ids))})'
     
     try:
         with _get_db() as conn:
