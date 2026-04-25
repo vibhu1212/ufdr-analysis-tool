@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -253,13 +254,42 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    if not st.session_state.messages:
+        # Empty state when there's no chat history
+        st.markdown("""
+        <div style="text-align: center; padding: 4rem 2rem;">
+            <h2>🤖 Forensic AI Assistant</h2>
+            <p style="color: #6c757d; max-width: 600px; margin: 0 auto 2rem auto;">
+                I can help you analyze the selected case evidence. I can search through messages,
+                identify key contacts, analyze locations, and find specific media.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem;">
+                <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; width: 250px; text-align: left;">
+                    <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">👥</div>
+                    <div style="font-weight: 500; margin-bottom: 0.25rem;">Find Contacts</div>
+                    <div style="font-size: 0.85rem; color: #6c757d;">"Who did John communicate with the most?"</div>
+                </div>
+                <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; width: 250px; text-align: left;">
+                    <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">💬</div>
+                    <div style="font-weight: 500; margin-bottom: 0.25rem;">Search Messages</div>
+                    <div style="font-size: 0.85rem; color: #6c757d;">"Show me messages about a meeting next week"</div>
+                </div>
+                <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; width: 250px; text-align: left;">
+                    <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">📍</div>
+                    <div style="font-weight: 500; margin-bottom: 0.25rem;">Locate Events</div>
+                    <div style="font-size: 0.85rem; color: #6c757d;">"Where was the device on Friday night?"</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
