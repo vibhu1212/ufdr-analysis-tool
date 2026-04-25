@@ -1,3 +1,7 @@
 ## 2025-04-07 - [Optimize Database Batch Inserts]
 **Learning:** During database ingestion in `ingest/database_writer.py`, iterating over records and firing off a `SELECT` statement per record to check for duplicates created a severe N+1 problem. This slowed down ingestion significantly.
 **Action:** Replaced the N+1 `SELECT` statements with a batch pre-fetch strategy. Specifically, chunked records (e.g., 400 at a time) and used an `OR` chained query to load existing keys into memory for O(1) duplicate checking. This honors the SQLite parameter limit (<999) while radically reducing the number of round trips. Next time, always avoid N+1 database operations inside iteration blocks, especially during batch operations.
+
+## 2025-04-08 - [Optimize Pandas Iteration]
+**Learning:** In the visualization modules (`geo_viz.py`, `anomaly_detection_viz.py`, `communication_patterns_viz.py`), iterating over pandas DataFrames using `iterrows()` is extremely slow due to the overhead of creating pandas Series objects for each row. Furthermore, list comprehensions using `iterrows()` to extract columns into lists of lists are highly inefficient.
+**Action:** Replaced `iterrows()` with `itertuples()` for row-by-row iteration (which yields much faster namedtuples). For extracting multiple columns into a list of lists, replaced Python loops with the fully vectorized pandas approach: `df[['col1', 'col2']].values.tolist()`. Next time, always avoid `iterrows()`; use `itertuples()` or `zip()` for looping, and `.values.tolist()` for extracting columnar data.
