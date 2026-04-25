@@ -63,7 +63,7 @@ def _get_case_stats(case_id: str, db_path: str = DB_PATH) -> dict:
         
         for table in ["messages", "contacts", "calls", "media", "locations"]:
             try:
-                cursor.execute(f"SELECT COUNT(*) FROM {table} WHERE case_id = ?", (case_id,))
+                cursor.execute(f'SELECT COUNT(*) FROM "{table}" WHERE case_id = ?', (case_id,))
                 stats[f"{table}_count"] = cursor.fetchone()[0]
             except Exception:
                 stats[f"{table}_count"] = 0
