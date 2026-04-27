@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -252,14 +253,38 @@ def render_chat_interface(selected_cases: list[str]):
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
+    # Display empty state if no messages
+    if not st.session_state.messages:
+        st.markdown(
+            """
+            <div style="text-align: center; margin-top: 2rem; margin-bottom: 2rem; padding: 2rem; border-radius: 8px; background-color: rgba(255, 255, 255, 0.05); border: 1px dashed rgba(255, 255, 255, 0.2);">
+                <h3 style="margin-top: 0;">👋 Welcome to Unified Search</h3>
+                <p style="color: #6c757d; margin-bottom: 1.5rem;">Ask natural language questions about the extracted evidence.</p>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-width: 400px; margin: 0 auto; text-align: left;">
+                    <div style="padding: 0.75rem; background-color: rgba(0, 0, 0, 0.2); border-radius: 4px; font-size: 0.9em;">
+                        💡 <i>"Show me all messages containing cryptocurrency addresses"</i>
+                    </div>
+                    <div style="padding: 0.75rem; background-color: rgba(0, 0, 0, 0.2); border-radius: 4px; font-size: 0.9em;">
+                        💡 <i>"Find all contacts who communicated with +1-555-0123"</i>
+                    </div>
+                    <div style="padding: 0.75rem; background-color: rgba(0, 0, 0, 0.2); border-radius: 4px; font-size: 0.9em;">
+                        💡 <i>"Show deleted messages recovered from WhatsApp"</i>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
+    else:
+        # Display existing chat history
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
+
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
