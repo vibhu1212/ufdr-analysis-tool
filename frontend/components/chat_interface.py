@@ -5,11 +5,11 @@ Provides a ChatGPT-style conversational UI with:
 - Table rendering for structured data (contacts, calls, messages)
 - Rich media evidence cards for unstructured data
 """
-import sys
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -170,10 +170,8 @@ def _render_chart(citations: list[dict], data_type: str):
     # Resample by hour or day depending on range
     if (max(timestamps) - min(timestamps)).days > 2:
         resampled = df.set_index("Time").resample("d").count().reset_index()
-        x_label = "Date"
     else:
         resampled = df.set_index("Time").resample("h").count().reset_index()
-        x_label = "Time (Hourly)"
 
     st.caption(f"📈 {data_type.title()} Activity Over Time")
     st.line_chart(resampled, x="Time", y="Count", color="#2ecc71")
@@ -251,6 +249,26 @@ def render_chat_interface(selected_cases: list[str]):
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    # Display empty state if no messages
+    if not st.session_state.messages:
+        st.markdown("""
+        <div style="text-align: center; padding: 3rem 1rem; color: #6c757d;">
+            <h3 style="margin-bottom: 0.5rem;">💬 Chat Assistant Ready</h3>
+            <p style="margin-bottom: 1.5rem; font-size: 0.95rem;">Ask questions about the case evidence, contacts, locations, or media to get started.</p>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center;">
+                <div style="background-color: #f8f9fa; padding: 0.75rem 1.25rem; border-radius: 0.5rem; border: 1px solid #dee2e6; color: #495057; font-size: 0.9rem; max-width: 500px;">
+                    <strong>🔍 Example:</strong> "Show me all messages involving phone number ending in 1234"
+                </div>
+                <div style="background-color: #f8f9fa; padding: 0.75rem 1.25rem; border-radius: 0.5rem; border: 1px solid #dee2e6; color: #495057; font-size: 0.9rem; max-width: 500px;">
+                    <strong>🔍 Example:</strong> "Did anyone discuss cryptocurrency or bitcoin?"
+                </div>
+                <div style="background-color: #f8f9fa; padding: 0.75rem 1.25rem; border-radius: 0.5rem; border: 1px solid #dee2e6; color: #495057; font-size: 0.9rem; max-width: 500px;">
+                    <strong>🔍 Example:</strong> "Where was the suspect's device on Friday night?"
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)  # noqa: E501
 
     # Display existing chat history
     for message in st.session_state.messages:
