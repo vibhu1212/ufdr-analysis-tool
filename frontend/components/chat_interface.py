@@ -5,11 +5,11 @@ Provides a ChatGPT-style conversational UI with:
 - Table rendering for structured data (contacts, calls, messages)
 - Rich media evidence cards for unstructured data
 """
-import sys
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -170,10 +170,8 @@ def _render_chart(citations: list[dict], data_type: str):
     # Resample by hour or day depending on range
     if (max(timestamps) - min(timestamps)).days > 2:
         resampled = df.set_index("Time").resample("d").count().reset_index()
-        x_label = "Date"
     else:
         resampled = df.set_index("Time").resample("h").count().reset_index()
-        x_label = "Time (Hourly)"
 
     st.caption(f"📈 {data_type.title()} Activity Over Time")
     st.line_chart(resampled, x="Time", y="Count", color="#2ecc71")
@@ -253,13 +251,30 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    if not st.session_state.messages:
+        st.markdown("""
+        <div style="text-align: center; padding: 3rem; margin-top: 2rem; border-radius: 8px; border: 1px dashed #e2e8f0; background-color: #f8fafc;">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔍</div>
+            <h3 style="color: #1e293b; margin-bottom: 0.5rem;">Start Your Investigation</h3>
+            <p style="color: #64748b; margin-bottom: 1.5rem;">Ask questions about the case evidence. The AI will search through messages, calls, media, and contacts.</p>
+            <div style="text-align: left; background-color: white; padding: 1rem; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: inline-block;">
+                <p style="color: #475569; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Try asking:</p>
+                <ul style="color: #64748b; font-size: 0.9rem; margin-bottom: 0; padding-left: 1.2rem;">
+                    <li>"Who did John communicate with the most?"</li>
+                    <li>"Show me messages containing suspicious keywords."</li>
+                    <li>"Are there any photos taken near the location?"</li>
+                </ul>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
