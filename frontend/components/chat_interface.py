@@ -253,13 +253,31 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    if not st.session_state.messages:
+        # UX Improvement: Empty state with examples
+        st.markdown("""
+        <div style="text-align: center; padding: 4rem 2rem; color: #6c757d; max-width: 600px; margin: 0 auto;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+            <h3 style="color: #495057; margin-bottom: 1rem;">Start Your Investigation</h3>
+            <p style="margin-bottom: 2rem;">Ask questions about the case evidence in plain English. The AI will search across messages, calls, contacts, and media.</p>
+            <div style="text-align: left; background-color: #f8f9fa; padding: 1.5rem; border-radius: 8px; border: 1px solid #e9ecef;">
+                <p style="font-weight: bold; margin-bottom: 0.5rem; color: #495057;">Try asking:</p>
+                <ul style="margin-bottom: 0; padding-left: 1.5rem;">
+                    <li style="margin-bottom: 0.5rem;"><em>"Show me all messages regarding the meeting at the warehouse."</em></li>
+                    <li style="margin-bottom: 0.5rem;"><em>"Who did John call on October 15th between 2 PM and 4 PM?"</em></li>
+                    <li><em>"Are there any photos containing a white van or license plate?"</em></li>
+                </ul>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)  # noqa: E501
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
