@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -252,14 +253,31 @@ def render_chat_interface(selected_cases: list[str]):
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
+    # Display existing chat history or an empty state
+    if not st.session_state.messages:
+        st.markdown(
+            """
+            <div style="text-align: center; padding: 3rem 1rem; color: #6c757d; border: 1px dashed #ced4da; border-radius: 8px; margin: 2rem 0;">
+                <h3 style="margin-bottom: 0.5rem; color: #495057;">💬 No messages yet</h3>
+                <p style="margin-bottom: 1.5rem;">Start investigating by asking a question about the evidence.</p>
+                <div style="font-size: 0.9em;">
+                    <strong>Try asking:</strong><br/>
+                    • "Who did the suspect communicate with most?"<br/>
+                    • "Show me all messages sent last Tuesday"<br/>
+                    • "Are there any calls longer than 10 minutes?"
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
