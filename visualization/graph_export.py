@@ -152,9 +152,12 @@ class GraphExporter:
         all_comms['is_late_night'] = (all_comms['hour'] >= 23) | (all_comms['hour'] <= 5)
         
         # Daily statistics
+        # Bolt Performance Optimization:
+        # Replaced custom lambda function `lambda x: len(set(x))` with Pandas native C-optimized
+        # string identifier `'nunique'` for significantly faster unique counts during aggregation.
         daily_stats = all_comms.groupby('date').agg({
             'timestamp': 'count',
-            'sender_digits': lambda x: len(set(x)),
+            'sender_digits': "nunique",
             'is_weekend': 'first',
             'is_late_night': 'sum'
         }).reset_index()
