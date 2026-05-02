@@ -254,7 +254,7 @@ INSTALL_PATH=$INSTALL_PATH
 # Neo4j Configuration (if using)
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=password123
+NEO4J_PASSWORD=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
 # Security
 ENABLE_ENCRYPTION=true
