@@ -240,7 +240,7 @@ INSTALL_PATH=$InstallPath
 # Neo4j Configuration (if using)
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=password123
+NEO4J_PASSWORD=$(-join ((48..57) + (65..90) + (97..122) | Get-Random -Count 16 | % {[char]$_}))
 
 # Security
 ENABLE_ENCRYPTION=true
