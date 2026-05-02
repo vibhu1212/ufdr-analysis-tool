@@ -253,13 +253,34 @@ def render_chat_interface(selected_cases: list[str]):
         st.session_state.messages = []
 
     # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    if not st.session_state.messages:
+        # Empty state with example queries
+        st.markdown("""
+        <div style="text-align: center; padding: 2rem; color: #6c757d; background: rgba(0,0,0,0.02); border-radius: 10px; margin: 2rem 0; border: 1px dashed rgba(0,0,0,0.1);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+            <h3 style="margin-bottom: 0.5rem; font-weight: 500;">Ready to investigate</h3>
+            <p style="margin-bottom: 1.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">Ask me anything about the extracted evidence. I can search through messages, contacts, locations, and more.</p>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; max-width: 500px; margin: 0 auto; text-align: left;">
+                <div style="padding: 0.8rem 1rem; background: rgba(0,0,0,0.03); border-radius: 6px; font-size: 0.9em; border-left: 3px solid #0068c9;">
+                    💡 <i>"Show me all messages containing cryptocurrency addresses"</i>
+                </div>
+                <div style="padding: 0.8rem 1rem; background: rgba(0,0,0,0.03); border-radius: 6px; font-size: 0.9em; border-left: 3px solid #0068c9;">
+                    💡 <i>"Find communications with foreign phone numbers"</i>
+                </div>
+                <div style="padding: 0.8rem 1rem; background: rgba(0,0,0,0.03); border-radius: 6px; font-size: 0.9em; border-left: 3px solid #0068c9;">
+                    💡 <i>"Where was the device located on Tuesday night?"</i>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)  # noqa: E501
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
