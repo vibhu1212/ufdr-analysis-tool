@@ -19,7 +19,6 @@ import json
 import logging
 import numpy as np
 from typing import Optional
-from pathlib import Path
 
 import faiss
 
@@ -237,6 +236,8 @@ class FAISSStore:
         # Generate query embedding
         if query_embeddings:
             q_vec = np.array(query_embeddings, dtype=np.float32)
+            if q_vec.ndim == 3 and q_vec.shape[0] == 1:
+                q_vec = q_vec[0]
             norms = np.linalg.norm(q_vec, axis=1, keepdims=True)
             norms[norms == 0] = 1
             q_vec = q_vec / norms
@@ -312,9 +313,23 @@ class FAISSStore:
         """
         all_results = {"ids": [], "documents": [], "metadatas": [], "distances": []}
         
+        # ⚡ Bolt Optimization: Pre-compute text embedding once for all cases
+        # Avoids calling the SentenceTransformer model N times for N cases
+        query_embeddings = None
+        if query_text:
+            query_embeddings = self._embedder.encode(
+                [query_text], normalize_embeddings=True
+            ).astype(np.float32).tolist()
+
         for case_id in case_ids:
             try:
-                results = self.query(case_id, query_text, n_results, where)
+                results = self.query(
+                    case_id,
+                    query_text,
+                    n_results,
+                    where,
+                    query_embeddings=query_embeddings
+                )
                 
                 for i in range(len(results["ids"])):
                     dist = results["distances"][i]
