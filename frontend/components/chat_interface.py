@@ -252,14 +252,31 @@ def render_chat_interface(selected_cases: list[str]):
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display existing chat history
-    for message in st.session_state.messages:
-        display_chat_message(
-            message["role"],
-            message["content"],
-            message.get("citations"),
-            message.get("query_type", ""),
-        )
+    # Display existing chat history or empty state
+    if not st.session_state.messages:
+        st.markdown(
+            """
+            <div style="text-align: center; padding: 3rem 1rem; color: #6c757d; border: 1px dashed #ced4da; border-radius: 8px; margin-bottom: 2rem; background-color: #f8f9fa;">
+                <h3 style="color: #495057; margin-bottom: 1rem;">👋 Welcome to Case Chat</h3>
+                <p style="margin-bottom: 1.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">I can help you analyze forensic evidence, summarize messages, map locations, and find key contacts.</p>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-width: 400px; margin: 0 auto; text-align: left;">
+                    <p style="font-size: 0.9em; margin: 0;"><strong>Try asking:</strong></p>
+                    <ul style="font-size: 0.9em; margin: 0; padding-left: 1.5rem;">
+                        <li>"Show me all messages between John and Sarah"</li>
+                        <li>"Where was the device located on Friday?"</li>
+                        <li>"Find any photos containing weapons"</li>
+                    </ul>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)  # noqa: E501
+    else:
+        for message in st.session_state.messages:
+            display_chat_message(
+                message["role"],
+                message["content"],
+                message.get("citations"),
+                message.get("query_type", ""),
+            )
 
     # Chat Input (pinned to bottom by Streamlit)
     if prompt := st.chat_input("Ask about the case evidence…"):
