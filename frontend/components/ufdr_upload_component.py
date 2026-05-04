@@ -266,9 +266,13 @@ def ingest_ufdr_data(extract_dir, filename, case_metadata):
                     if table == 'sqlite_sequence':
                         continue
                     
+                    if not table.isidentifier():
+                        st.warning(f"  ⚠️ Skipped {table}: Invalid table name")
+                        continue
+
                     try:
                         # Get table schema from source
-                        source_cursor.execute(f"PRAGMA table_info({table})")
+                        source_cursor.execute(f'PRAGMA table_info("{table}")')
                         source_columns_info = source_cursor.fetchall()
                         source_column_names = [col[1] for col in source_columns_info]
                         
@@ -288,12 +292,12 @@ def ingest_ufdr_data(extract_dir, filename, case_metadata):
                                 target_column_names = source_column_names
                         else:
                             # Get target table schema
-                            cursor.execute(f"PRAGMA table_info({table})")
+                            cursor.execute(f'PRAGMA table_info("{table}")')
                             target_columns_info = cursor.fetchall()
                             target_column_names = [col[1] for col in target_columns_info]
                         
                         # Fetch all data from source
-                        source_cursor.execute(f"SELECT * FROM {table}")
+                        source_cursor.execute(f'SELECT * FROM "{table}"')
                         rows = source_cursor.fetchall()
                         
                         if rows:
@@ -329,7 +333,7 @@ def ingest_ufdr_data(extract_dir, filename, case_metadata):
                             
                             # Use OR IGNORE for cases to avoid unique constraint errors
                             conflict_clause = "OR IGNORE" if table == "cases" else "OR REPLACE"
-                            insert_sql = f"INSERT {conflict_clause} INTO {table} ({','.join(final_columns)}) VALUES ({placeholders})"
+                            insert_sql = f'INSERT {conflict_clause} INTO "{table}" ({','.join(final_columns)}) VALUES ({placeholders})'
                             
                             # Prepare rows: extract existing columns + append fixed case_id
                             prepared_rows = []
