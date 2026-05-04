@@ -252,6 +252,20 @@ def render_chat_interface(selected_cases: list[str]):
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
+    # Display empty state if no messages
+    if not st.session_state.messages:
+        # Use native Streamlit components for the empty state
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("<h1 style='text-align: center; color: #6c757d; font-size: 4rem; margin-bottom: 0;'>🔍</h1>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #495057;'>Ready to Investigate</h3>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #6c757d; margin-bottom: 2rem;'>Ask questions about the case evidence. The AI will search messages, calls, media, and locations.</p>", unsafe_allow_html=True)
+
+            st.info("**Try asking:**\n\n"
+                    "• *\"Show me all communications involving 'John' from yesterday\"*\n\n"
+                    "• *\"Are there any photos related to financial documents?\"*\n\n"
+                    "• *\"Summarize the recent travel locations\"*")
+
     # Display existing chat history
     for message in st.session_state.messages:
         display_chat_message(
