@@ -2,3 +2,6 @@
 **Learning:** Using invalid kwargs like `width="stretch"` in Streamlit `st.button` fails silently, leaving buttons unaligned and poorly structured. In addition, providing tooltips (`help` parameter) is crucial for primary action buttons to improve user confidence and accessibility.
 **Action:** Always use `use_container_width=True` for column-filling buttons and include `help` descriptions for UI accessibility and user guidance.
 ## 2024-03-24 - Initial Learnings\n**Learning:** This repo is a Streamlit application primarily, with some minimal React code in `frontend/src/`. It doesn't use `package.json` or standard node package managers at the root level.\n**Action:** Focus on Streamlit UI elements in Python, or the specific React file if applicable, but note that standard `pnpm` commands might not apply if it's not a standard node project.
+## 2024-05-18 - Chat Interface Empty State
+**Learning:** When displaying an empty state in Streamlit with `st.markdown(..., unsafe_allow_html=True)`, it's important to use explicit string concatenation to avoid indentation turning into code blocks in Markdown. Also, rely on explicit hex colors instead of Streamlit CSS variables which may not resolve in custom HTML.
+**Action:** Always format multiline custom HTML correctly to avoid parser bugs and supply helpful placeholder prompts when a container (like a chat) is empty.
