@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime
+from itertools import islice
 
 # Import backend modules
 try:
@@ -251,6 +252,22 @@ def render_chat_interface(selected_cases: list[str]):
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    if not st.session_state.messages:
+        # Helpful empty state
+        st.markdown(
+            '<div style="text-align: center; padding: 4rem; color: #6c757d;">'
+            '<h2>👋 Welcome to Forensic Chat</h2>'
+            '<p>Ask questions about the case evidence to get started. You can search across messages, calls, media, and more.</p>'
+            '<div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem; align-items: center;">'
+            '<p style="font-weight: 500; margin-bottom: 0;">Try asking:</p>'
+            '<div style="background-color: #f8f9fa; padding: 0.5rem 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9em; max-width: 80%;">"Show me all messages from John yesterday"</div>'
+            '<div style="background-color: #f8f9fa; padding: 0.5rem 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9em; max-width: 80%;">"List phone calls over 5 minutes"</div>'
+            '<div style="background-color: #f8f9fa; padding: 0.5rem 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9em; max-width: 80%;">"Find images containing weapons or drugs"</div>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     # Display existing chat history
     for message in st.session_state.messages:
