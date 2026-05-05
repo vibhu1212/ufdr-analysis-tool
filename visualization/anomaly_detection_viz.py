@@ -470,9 +470,13 @@ class AnomalyDetector:
         daily_volume = all_comms.groupby('date').size()
         
         # Calculate unique contacts per day
-        daily_unique = all_comms.groupby('date').apply(
-            lambda x: len(set(x['sender_digits']) | set(x['receiver_digits']))
-        )
+        if not all_comms.empty:
+            daily_unique = pd.concat([
+                all_comms[['date', 'sender_digits']].rename(columns={'sender_digits': 'contact'}),
+                all_comms[['date', 'receiver_digits']].rename(columns={'receiver_digits': 'contact'})
+            ]).groupby('date')['contact'].nunique()
+        else:
+            daily_unique = pd.Series(dtype=int)
         
         # Calculate rolling statistics
         rolling_vol = daily_volume.rolling(window=window_days, min_periods=1)

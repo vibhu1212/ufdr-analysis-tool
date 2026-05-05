@@ -154,7 +154,7 @@ class GraphExporter:
         # Daily statistics
         daily_stats = all_comms.groupby('date').agg({
             'timestamp': 'count',
-            'sender_digits': lambda x: len(set(x)),
+            'sender_digits': 'nunique',
             'is_weekend': 'first',
             'is_late_night': 'sum'
         }).reset_index()
